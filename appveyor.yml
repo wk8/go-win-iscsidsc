@@ -5,8 +5,16 @@ clone_folder: c:\go\src\github.com\wk8\go-win-iscsidsc
 environment:
   GOPATH: c:\go
 
-test_script:
+cache:
+  # contains glide's cache
+  - '%USERPROFILE%\.glide'
+
+before_test:
   - powershell -File hack/start_iscsi_services.ps1
   - powershell -File hack/deps.ps1
+
+test_script:
   - powershell -File hack/integration_tests.ps1
+
+after_test:
   - powershell -File hack/teardown_iscsi_targets.ps1
