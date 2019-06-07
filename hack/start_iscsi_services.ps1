@@ -32,7 +32,7 @@ function ensureServiceStarted([String]$serviceName) {
     if ($status -eq 'Running') {
         echo "Service $serviceName already running"
     } else {
-        echo 'Starting service $serviceName...'
+        echo "Starting service $serviceName..."
         Start-Service $serviceName
         (Get-Service $serviceName).WaitForStatus('Running', '00:00:30')
         echo "Service $serviceName successfully started"
