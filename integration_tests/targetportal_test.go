@@ -21,12 +21,14 @@ func TestTargetPortalListCreateDelete(t *testing.T) {
 			if cleanedUp {
 				return nil
 			}
-			cleanedUp = true
+
 			for i := 0; i < len(indices); i++ {
 				if err := targetportal.RemoveIScsiSendTargetPortal(nil, nil, remainingLocalPortals[indices[i]]); err != nil {
 					errors = append(errors, err)
 				}
 			}
+
+			cleanedUp = true
 			return
 		}
 		defer cleanup()
@@ -50,6 +52,38 @@ func TestTargetPortalListCreateDelete(t *testing.T) {
 	})
 }
 
+// used to clean up the target portals added for discovery targets
+type targetPortalCleaner struct {
+	portals []*targetportal.Portal
+	ran     bool
+}
+
+func newTargetPortalCleaner(portals ...*targetportal.Portal) *targetPortalCleaner {
+	return &targetPortalCleaner{
+		portals: portals,
+	}
+}
+
+func (cleaner *targetPortalCleaner) cleanup() (errors []error) {
+	if cleaner.ran {
+		return
+	}
+
+	for _, portal := range cleaner.portals {
+		if err := targetportal.RemoveIScsiSendTargetPortal(nil, nil, portal); err != nil {
+			errors = append(errors, err)
+		}
+	}
+
+	cleaner.ran = true
+	return
+}
+
+func (cleaner *targetPortalCleaner) assertCleanupSuccessful(t *testing.T) {
+	require.False(t, cleaner.ran)
+	require.Nil(t, cleaner.cleanup())
+}
+
 func TestAddTargetPortalWithLoginOptionsAndSecurityFlags(t *testing.T) {
 	remainingLocalPortals, existingTargets := getAvailableLocalTargetPortals(t)
 	portal := remainingLocalPortals[0]
@@ -64,15 +98,8 @@ func TestAddTargetPortalWithLoginOptionsAndSecurityFlags(t *testing.T) {
 	}
 	securityFlags := targetportal.SecurityFlagIkeIpsecEnabled | targetportal.SecurityFlagTransportModePreferred
 
-	cleanedUp := false
-	cleanup := func() error {
-		if cleanedUp {
-			return nil
-		}
-		cleanedUp = true
-		return targetportal.RemoveIScsiSendTargetPortal(nil, nil, portal)
-	}
-	defer cleanup()
+	portalCleaner := newTargetPortalCleaner(portal)
+	defer portalCleaner.cleanup()
 
 	// create the portal
 	err := targetportal.AddIScsiSendTargetPortal(nil, nil, loginOptions, &securityFlags, portal)
@@ -87,8 +114,7 @@ func TestAddTargetPortalWithLoginOptionsAndSecurityFlags(t *testing.T) {
 	assert.Equal(t, securityFlags, portalInfo.SecurityFlags)
 
 	// cleanup
-	require.False(t, cleanedUp)
-	require.Nil(t, cleanup())
+	portalCleaner.assertCleanupSuccessful(t)
 }
 
 func TestAddUnresponsiveTargetPortal(t *testing.T) {
@@ -99,15 +125,8 @@ func TestAddUnresponsiveTargetPortal(t *testing.T) {
 	require.NotNil(t, portal.Socket)
 	*portal.Socket += 1
 
-	cleanedUp := false
-	cleanup := func() error {
-		if cleanedUp {
-			return nil
-		}
-		cleanedUp = true
-		return targetportal.RemoveIScsiSendTargetPortal(nil, nil, portal)
-	}
-	defer cleanup()
+	portalCleaner := newTargetPortalCleaner(portal)
+	defer portalCleaner.cleanup()
 
 	err := targetportal.AddIScsiSendTargetPortal(nil, nil, nil, nil, portal)
 	require.NotNil(t, err)
@@ -118,8 +137,7 @@ func TestAddUnresponsiveTargetPortal(t *testing.T) {
 	require.Equal(t, "0xEFFF0003", winApiErr.HexCode())
 
 	// cleanup
-	require.False(t, cleanedUp)
-	require.Nil(t, cleanup())
+	portalCleaner.assertCleanupSuccessful(t)
 }
 
 func TestAddTargetPortalWithDiscoveryChapAuthentication(t *testing.T) {
@@ -136,15 +154,8 @@ func TestAddTargetPortalWithDiscoveryChapAuthentication(t *testing.T) {
 		Password: &chapPassword,
 	}
 
-	cleanedUp := false
-	cleanup := func() error {
-		if cleanedUp {
-			return nil
-		}
-		cleanedUp = true
-		return targetportal.RemoveIScsiSendTargetPortal(nil, nil, portal)
-	}
-	defer cleanup()
+	portalCleaner := newTargetPortalCleaner(portal)
+	defer portalCleaner.cleanup()
 
 	// creating the portal should result in an error as Windows targets don't support CHAP for discovery (yet?)
 	err := targetportal.AddIScsiSendTargetPortal(nil, nil, loginOptions, nil, portal)
@@ -164,8 +175,7 @@ func TestAddTargetPortalWithDiscoveryChapAuthentication(t *testing.T) {
 	assert.Equal(t, *loginOptions, portalInfo.LoginOptions)
 
 	// cleanup
-	require.False(t, cleanedUp)
-	require.Nil(t, cleanup())
+	portalCleaner.assertCleanupSuccessful(t)
 }
 
 // tests that if there are a lot of targets, the mechanism to list
@@ -173,21 +183,8 @@ func TestAddTargetPortalWithDiscoveryChapAuthentication(t *testing.T) {
 func TestListingTargetsWithSmallerInitialBuffer(t *testing.T) {
 	remainingLocalPortals, existingTargets := getAvailableLocalTargetPortals(t)
 
-	// TODO wkpo DRY up this pattern in a struct?
-	cleanedUp := false
-	cleanup := func() (errors []error) {
-		if cleanedUp {
-			return nil
-		}
-		cleanedUp = true
-		for _, portal := range remainingLocalPortals {
-			if err := targetportal.RemoveIScsiSendTargetPortal(nil, nil, portal); err != nil {
-				errors = append(errors, err)
-			}
-		}
-		return
-	}
-	defer cleanup()
+	portalCleaner := newTargetPortalCleaner(remainingLocalPortals...)
+	defer portalCleaner.cleanup()
 
 	// create all the target portals
 	for _, portal := range remainingLocalPortals {
@@ -208,8 +205,7 @@ func TestListingTargetsWithSmallerInitialBuffer(t *testing.T) {
 	assert.Equal(t, len(existingTargets)+len(remainingLocalPortals), len(allTargets))
 
 	// cleanup
-	require.False(t, cleanedUp)
-	require.Nil(t, cleanup())
+	portalCleaner.assertCleanupSuccessful(t)
 }
 
 // getAvailableLocalTargetPortals looks for at least one local target that has not been added
