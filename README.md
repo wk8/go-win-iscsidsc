@@ -2,6 +2,6 @@
 
 # go-win-iscsidsc
 
-Go bindings to (some of) [Windows' iSCSI Discovery Library API](https://docs.microsoft.com/en-us/windows/desktop/api/_iscsidisc/).
+Golang bindings to (some of) [Windows' iSCSI Discovery Library API](https://docs.microsoft.com/en-us/windows/desktop/api/_iscsidisc/).
 
 Work in progress!

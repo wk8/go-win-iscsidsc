@@ -14,6 +14,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+	"github.com/wk8/go-win-iscsidsc/internal"
 	"github.com/wk8/go-win-iscsidsc/targetportal"
 )
 
@@ -56,9 +58,80 @@ func getLocalTargetPortals(t *testing.T) map[string]*targetportal.Portal {
 	return portals
 }
 
-// TODO wkpo
-//_, cleanupTarget := setupIscsiTarget(t, "-ChapUser", chapUser, "-ChapPassword", chapPassword, "-DiskCount", "1")
-//defer cleanupTarget()
+// getUnregisteredLocalTargetPortals looks for at least one local target that has not been added
+// as a discovery target yet, and otherwise fails the test: we don't want to make potentially
+// destructive changes to the system.
+// It returns a list of available local target portals, as well as the other existing targets
+// that have already been added as discovery targets.
+func getUnregisteredLocalTargetPortals(t *testing.T) ([]*targetportal.Portal, []targetportal.PortalInfo) {
+	localPortals := getLocalTargetPortals(t)
+
+	existingTargets, err := targetportal.ReportIScsiSendTargetPortals()
+	require.Nil(t, err)
+
+	// look for at least one local target that has not been added as a discovery target yet
+	for _, target := range existingTargets {
+		delete(localPortals, target.Address)
+	}
+	if len(localPortals) == 0 {
+		t.Fatalf("All local targets have already been added, cowardly refusing to run this test")
+	}
+
+	remainingLocalPortals := make([]*targetportal.Portal, len(localPortals))
+	i := 0
+	for _, portal := range localPortals {
+		remainingLocalPortals[i] = portal
+		i++
+	}
+
+	return remainingLocalPortals, existingTargets
+}
+
+// used to clean up the target portals added for discovery targets
+type targetPortalCleaner struct {
+	portals []*targetportal.Portal
+	ran     bool
+}
+
+func newTargetPortalCleaner(portals ...*targetportal.Portal) *targetPortalCleaner {
+	return &targetPortalCleaner{
+		portals: portals,
+	}
+}
+
+func (cleaner *targetPortalCleaner) cleanup() (errors []error) {
+	if cleaner.ran {
+		return
+	}
+
+	for _, portal := range cleaner.portals {
+		if err := targetportal.RemoveIScsiSendTargetPortal(nil, nil, portal); err != nil {
+			errors = append(errors, err)
+		}
+	}
+
+	cleaner.ran = true
+	return
+}
+
+func (cleaner *targetPortalCleaner) assertCleanupSuccessful(t *testing.T) {
+	require.False(t, cleaner.ran)
+	require.Nil(t, cleaner.cleanup())
+}
+
+// registerLocalTargetPortal gets the first unregistered portal from getUnregisteredLocalTargetPortals,
+// registers it with the default options, and returns it along with a targetPortalCleaner to unregister it
+// when done with testing
+func registerLocalTargetPortal(t *testing.T) (*targetportal.Portal, *targetPortalCleaner) {
+	portals, _ := getUnregisteredLocalTargetPortals(t)
+	portal := portals[0]
+
+	err := targetportal.AddIScsiSendTargetPortal(nil, nil, nil, nil, portal)
+	require.Nil(t, err)
+
+	return portal, newTargetPortalCleaner(portal)
+}
+
 // setupIscsiTarget calls hack/setup_iscsi_target to create a target with a random IQN,
 // then returns both the target's IQN as well as a function to tear it down when done with testing.
 func setupIscsiTarget(t *testing.T, extraArgs ...string) (string, func()) {
@@ -88,27 +161,6 @@ func repoRoot(t *testing.T) string {
 	return filepath.Dir(filepath.Dir(filePath))
 }
 
-// iterateOverAllSubsets will call f with all the 2^n - 1 (unordered) subsets of {0,1,2,...,n}
-func iterateOverAllSubsets(n uint, f func(subset []uint)) {
-	max := uint(1<<n - 1)
-	subset := make([]uint, n)
-
-	generateSubset := func(i uint) []uint {
-		index := 0
-		for j := uint(0); j < n; j++ {
-			if i&(1<<j) != 0 {
-				subset[index] = j
-				index++
-			}
-		}
-		return subset[:index]
-	}
-
-	for i := uint(1); i <= max; i++ {
-		f(generateSubset(i))
-	}
-}
-
 func shuffle(a []uint) {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for i := len(a) - 1; i > 0; i-- {
@@ -131,4 +183,23 @@ func randomHexString(t *testing.T, length int) string {
 	}
 
 	return hex.EncodeToString(randBytes)
+}
+
+func assertStringInSlice(t *testing.T, needle string, slice []string) {
+	for _, item := range slice {
+		if item == needle {
+			return
+		}
+	}
+	t.Errorf("%q not found in %v", needle, slice)
+}
+
+// setSmallInitialApiBufferSize changes the value of internal.InitialApiBufferSize to 1,
+// and returns a func to revert that change when done with testing.
+func setSmallInitialApiBufferSize() func() {
+	previousBufferSize := internal.InitialApiBufferSize
+	internal.InitialApiBufferSize = 1
+	return func() {
+		internal.InitialApiBufferSize = previousBufferSize
+	}
 }

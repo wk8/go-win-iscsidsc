@@ -7,13 +7,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/wk8/go-win-iscsidsc"
+	"github.com/wk8/go-win-iscsidsc/internal"
 	"github.com/wk8/go-win-iscsidsc/targetportal"
 )
 
 func TestTargetPortalListCreateDelete(t *testing.T) {
-	remainingLocalPortals, existingTargets := getAvailableLocalTargetPortals(t)
+	remainingLocalPortals, existingTargets := getUnregisteredLocalTargetPortals(t)
 
-	iterateOverAllSubsets(uint(len(remainingLocalPortals)), func(indices []uint) {
+	internal.IterateOverAllSubsets(uint(len(remainingLocalPortals)), func(indices []uint) {
 		shuffle(indices)
 
 		cleanedUp := false
@@ -52,40 +53,8 @@ func TestTargetPortalListCreateDelete(t *testing.T) {
 	})
 }
 
-// used to clean up the target portals added for discovery targets
-type targetPortalCleaner struct {
-	portals []*targetportal.Portal
-	ran     bool
-}
-
-func newTargetPortalCleaner(portals ...*targetportal.Portal) *targetPortalCleaner {
-	return &targetPortalCleaner{
-		portals: portals,
-	}
-}
-
-func (cleaner *targetPortalCleaner) cleanup() (errors []error) {
-	if cleaner.ran {
-		return
-	}
-
-	for _, portal := range cleaner.portals {
-		if err := targetportal.RemoveIScsiSendTargetPortal(nil, nil, portal); err != nil {
-			errors = append(errors, err)
-		}
-	}
-
-	cleaner.ran = true
-	return
-}
-
-func (cleaner *targetPortalCleaner) assertCleanupSuccessful(t *testing.T) {
-	require.False(t, cleaner.ran)
-	require.Nil(t, cleaner.cleanup())
-}
-
 func TestAddTargetPortalWithLoginOptionsAndSecurityFlags(t *testing.T) {
-	remainingLocalPortals, existingTargets := getAvailableLocalTargetPortals(t)
+	remainingLocalPortals, existingTargets := getUnregisteredLocalTargetPortals(t)
 	portal := remainingLocalPortals[0]
 	portal.SymbolicName = "test-portal-with-login-options-and-security-flags"
 
@@ -118,7 +87,7 @@ func TestAddTargetPortalWithLoginOptionsAndSecurityFlags(t *testing.T) {
 }
 
 func TestAddUnresponsiveTargetPortal(t *testing.T) {
-	remainingLocalPortals, _ := getAvailableLocalTargetPortals(t)
+	remainingLocalPortals, _ := getUnregisteredLocalTargetPortals(t)
 	portal := remainingLocalPortals[0]
 	portal.SymbolicName = "test-unresponsive-portal"
 	// let's try to connect on the wrong port
@@ -141,7 +110,7 @@ func TestAddUnresponsiveTargetPortal(t *testing.T) {
 }
 
 func TestAddTargetPortalWithDiscoveryChapAuthentication(t *testing.T) {
-	remainingLocalPortals, existingTargets := getAvailableLocalTargetPortals(t)
+	remainingLocalPortals, existingTargets := getUnregisteredLocalTargetPortals(t)
 	portal := remainingLocalPortals[0]
 	portal.SymbolicName = "test-portal-with-chap-authentication"
 
@@ -181,7 +150,7 @@ func TestAddTargetPortalWithDiscoveryChapAuthentication(t *testing.T) {
 // tests that if there are a lot of targets, the mechanism to list
 // targets again with a bigger buffer works as intended.
 func TestListingTargetsWithSmallerInitialBuffer(t *testing.T) {
-	remainingLocalPortals, existingTargets := getAvailableLocalTargetPortals(t)
+	remainingLocalPortals, existingTargets := getUnregisteredLocalTargetPortals(t)
 
 	portalCleaner := newTargetPortalCleaner(remainingLocalPortals...)
 	defer portalCleaner.cleanup()
@@ -193,11 +162,7 @@ func TestListingTargetsWithSmallerInitialBuffer(t *testing.T) {
 	}
 
 	// now we get to the interesting part: we lower the initial buffer size for listing calls
-	previousBufferSize := iscsidsc.InitialApiBufferSize
-	iscsidsc.InitialApiBufferSize = 1
-	defer func() {
-		iscsidsc.InitialApiBufferSize = previousBufferSize
-	}()
+	defer setSmallInitialApiBufferSize()
 
 	// and make that listing call
 	allTargets, err := targetportal.ReportIScsiSendTargetPortals()
@@ -206,35 +171,6 @@ func TestListingTargetsWithSmallerInitialBuffer(t *testing.T) {
 
 	// cleanup
 	portalCleaner.assertCleanupSuccessful(t)
-}
-
-// getAvailableLocalTargetPortals looks for at least one local target that has not been added
-// as a discovery target yet, and otherwise fails the test: we don't want to make potentially
-// destructive changes to the system.
-// It returns a list of available local target portals, as well as the other existing targets
-// that have already been added as discovery targets.
-func getAvailableLocalTargetPortals(t *testing.T) ([]*targetportal.Portal, []targetportal.PortalInfo) {
-	localPortals := getLocalTargetPortals(t)
-
-	existingTargets, err := targetportal.ReportIScsiSendTargetPortals()
-	require.Nil(t, err)
-
-	// look for at least one local target that has not been added as a discovery target yet
-	for _, target := range existingTargets {
-		delete(localPortals, target.Address)
-	}
-	if len(localPortals) == 0 {
-		t.Fatalf("All local targets have already been added, cowardly refusing to run this test")
-	}
-
-	remainingLocalPortals := make([]*targetportal.Portal, len(localPortals))
-	i := 0
-	for _, portal := range localPortals {
-		remainingLocalPortals[i] = portal
-		i++
-	}
-
-	return remainingLocalPortals, existingTargets
 }
 
 // findPortal looks amongst the registered target portals for the given portal, and returns its info data.

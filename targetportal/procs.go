@@ -8,16 +8,16 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/pkg/errors"
 	"golang.org/x/sys/windows"
 
-	"github.com/wk8/go-win-iscsidsc"
+	"github.com/pkg/errors"
+	"github.com/wk8/go-win-iscsidsc/internal"
 )
 
 var (
-	procAddIScsiSendTargetPortalW       = iscsidsc.IscsidscDLL.NewProc("AddIScsiSendTargetPortalW")
-	procReportIScsiSendTargetPortalsExW = iscsidsc.IscsidscDLL.NewProc("ReportIScsiSendTargetPortalsExW")
-	procRemoveIScsiSendTargetPortalW    = iscsidsc.IscsidscDLL.NewProc("RemoveIScsiSendTargetPortalW")
+	procAddIScsiSendTargetPortalW       = internal.IscsidscDLL.NewProc("AddIScsiSendTargetPortalW")
+	procReportIScsiSendTargetPortalsExW = internal.IscsidscDLL.NewProc("ReportIScsiSendTargetPortalsExW")
+	procRemoveIScsiSendTargetPortalW    = internal.IscsidscDLL.NewProc("RemoveIScsiSendTargetPortalW")
 )
 
 // AddIScsiSendTargetPortal adds a static target portal to the list of target portals to which the iSCSI initiator service transmits SendTargets requests.
@@ -66,7 +66,6 @@ func (portalInfo *PortalInfo) AddIScsiSendTargetPortal() error {
 	return AddIScsiSendTargetPortal(initiatorInstance, initiatorPortNumber, &portalInfo.LoginOptions, &portalInfo.SecurityFlags, &portalInfo.Portal)
 }
 
-// FIXME: unit tests
 // checkAndConvertLoginOptions translates the user-facing `LoginOptions` struct
 // into the `loginOptions` struct that the syscall expects.
 // Note that this latter struct contains two `uintptr`s  that map to `PUCHAR`s on the
@@ -130,7 +129,6 @@ func checkAndConvertLoginOptions(optsIn *LoginOptions) (opts *loginOptions, user
 	return
 }
 
-// FIXME: unit tests
 // checkAndConvertPortal translates the user-facing `Portal` struct
 // into the `portal` struct that the syscall expects.
 func checkAndConvertPortal(ptlIn *Portal) (*portal, error) {
@@ -186,7 +184,7 @@ func callProcAddIScsiSendTargetPortalW(initiatorInstancePtr *uint16, initiatorPo
 	privateLoginOptions.username = userNameUintptr
 	privateLoginOptions.password = passwordUintptr
 
-	return iscsidsc.CallWinApi(procAddIScsiSendTargetPortalW,
+	return internal.CallWinApi(procAddIScsiSendTargetPortalW,
 		uintptr(unsafe.Pointer(initiatorInstancePtr)),
 		uintptr(initiatorPortNumberValue),
 		uintptr(unsafe.Pointer(privateLoginOptions)),
@@ -216,9 +214,8 @@ func ReportIScsiSendTargetPortals() ([]PortalInfo, error) {
 }
 
 // retrievePortalInfo gets the raw portals info from the Windows API.
-// FIXME: ensure that it does work when making a call with too small a buffer, with a test!
 func retrievePortalInfo() (buffer []byte, bufferPointer, bufferSize uintptr, count int32, err error) {
-	bufferSize = iscsidsc.InitialApiBufferSize
+	bufferSize = internal.InitialApiBufferSize
 	var exitCode uintptr
 
 	for {
@@ -251,7 +248,7 @@ func retrievePortalInfo() (buffer []byte, bufferPointer, bufferSize uintptr, cou
 // it ensures that we can get the address of the buffer we use before it's moved in memory, so that
 // we can then resolve pointers to itself it contains.
 func callProcReportIScsiSendTargetPortalsExW(count, bufferSize, buffer uintptr) (uintptr, uintptr, error) {
-	exitCode, err := iscsidsc.CallWinApi(procReportIScsiSendTargetPortalsExW, count, bufferSize, buffer)
+	exitCode, err := internal.CallWinApi(procReportIScsiSendTargetPortalsExW, count, bufferSize, buffer)
 	return exitCode, buffer, err
 }
 
@@ -389,7 +386,7 @@ func RemoveIScsiSendTargetPortal(initiatorInstance *string, initiatorPortNumber 
 		return errors.Wrap(err, "invalid portal argument")
 	}
 
-	_, err = iscsidsc.CallWinApi(procRemoveIScsiSendTargetPortalW,
+	_, err = internal.CallWinApi(procRemoveIScsiSendTargetPortalW,
 		uintptr(unsafe.Pointer(initiatorInstancePtr)),
 		uintptr(initiatorPortNumberValue),
 		uintptr(unsafe.Pointer(privatePortal)),

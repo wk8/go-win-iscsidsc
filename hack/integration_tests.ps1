@@ -8,25 +8,4 @@ Param(
 
 . "$PSScriptRoot/.common_env.ps1"
 
-$previousPath = pwd
-
-try {
-    cd "$repoRootDir/integration_tests"
-
-    $testArgs = @(
-    'test'
-    '-v'
-    '-count=1'
-    )
-
-    if ($TestCase -and $TestCase -ne "")
-    {
-        $testArgs += "-run=$TestCase"
-    }
-
-    & go $testArgs
-
-    if (-not $?) { throw 'tests failed' }
-} finally {
-    cd $previousPath
-}
+runTestsForSubpackages 'integration_tests' $TestCase

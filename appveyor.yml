@@ -1,3 +1,5 @@
+# TODO wkpo: test several go versions? see https://www.appveyor.com/docs/windows-images-software/#golang
+
 build: off
 
 clone_folder: c:\go\src\github.com\wk8\go-win-iscsidsc
@@ -14,6 +16,7 @@ before_test:
   - powershell -File hack/deps.ps1
 
 test_script:
+  - powershell -File hack/unit_tests.ps1
   - powershell -File hack/integration_tests.ps1
 
 after_test:

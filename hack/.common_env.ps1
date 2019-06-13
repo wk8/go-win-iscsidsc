@@ -30,3 +30,39 @@ function tryIgnore([ScriptBlock]$callback) {
 }
 
 $repoRootDir = Split-Path -Parent $PSScriptRoot
+
+function runTestsForSubpackages([String[]]$subpackages, [String]$testCase) {
+    $subpackages = $subpackages | ForEach-Object { $subpackage = $_.TrimStart("\/."); "./$subpackage" }
+
+    $displaySubpackages = 'subpackage'
+    if ($subpackages.Length -gt 1) {
+        $displaySubpackages += 's'
+    }
+    $displaySubpackages += " $subpackages"
+
+    echo "Running tests for $displaySubpackages"
+
+    $testArgs = @(
+    'test'
+    '-v'
+    '-count=1'
+    )
+    $testArgs += $subpackages
+
+    if ($testCase -and $testCase -ne '') {
+        $testArgs += "-run=$testCase"
+    }
+
+    $previousPath = pwd
+    try {
+        cd $repoRootDir
+
+        & go $testArgs
+
+        if (-not$?) {
+            throw "tests failed for $displaySubpackages"
+        }
+    } finally {
+        cd $previousPath
+    }
+}
