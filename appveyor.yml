@@ -1,11 +1,26 @@
-# TODO wkpo: test several go versions? see https://www.appveyor.com/docs/windows-images-software/#golang
-
 build: off
 
-clone_folder: c:\go\src\github.com\wk8\go-win-iscsidsc
+clone_folder: c:\gopath\src\github.com\wk8\go-win-iscsidsc
 
 environment:
-  GOPATH: c:\go
+  GOPATH: c:\gopath
+
+  matrix:
+    # see https://www.appveyor.com/docs/windows-images-software/#golang
+    - GOROOT: C:\go
+      GO_WIN_ISCSI_GOBIN: c:\go\bin\go
+
+    - GOROOT: C:\go112
+      GO_WIN_ISCSI_GOBIN: c:\go112\bin\go
+
+    - GOROOT: C:\go111
+      GO_WIN_ISCSI_GOBIN: c:\go111\bin\go
+
+    - GOROOT: C:\go110
+      GO_WIN_ISCSI_GOBIN: c:\go110\bin\go
+
+    - GOROOT: C:\go19
+      GO_WIN_ISCSI_GOBIN: c:\go19\bin\go
 
 cache:
   # contains glide's cache

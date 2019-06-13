@@ -6,6 +6,11 @@ Param(
     [Parameter(Position = 0, Mandatory=$false)] [String] $TargetIQN # if left empty, will remove em' all
 )
 
+# exit on error
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+$PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+
 . "$PSScriptRoot/.common_env.ps1"
 
 $global:serviceStopped = $false

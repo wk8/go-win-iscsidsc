@@ -14,6 +14,11 @@ Param(
     [Parameter(Position = 1, Mandatory=$false)] [Int32] $ListenPort
 )
 
+# exit on error
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+$PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+
 . "$PSScriptRoot/.common_env.ps1"
 
 function ensureFeatureInstalled([String]$featureName) {

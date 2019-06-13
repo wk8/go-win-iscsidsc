@@ -6,6 +6,11 @@ Param(
     [ValidateSet('install', 'update', IgnoreCase = $true)] [Parameter(Position = 0, Mandatory = $false)] [String] $Action = 'install'
 )
 
+# exit on error
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+$PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+
 . "$PSScriptRoot/.common_env.ps1"
 
 # see https://github.com/Masterminds/glide/releases

@@ -11,6 +11,11 @@ Param(
     [Parameter(Mandatory=$false)] [UInt64] $DiskSizeBytes = 100 * 1024 * 1024 # 100MB
 )
 
+# exit on error
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+$PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+
 . "$PSScriptRoot/.common_env.ps1"
 
 function ensureDisksExist([String]$targetIQN, [Int32]$count, [UInt64]$sizeBytes) {
