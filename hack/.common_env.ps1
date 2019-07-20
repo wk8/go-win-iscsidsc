@@ -5,6 +5,10 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
+$TestIQNPrefix = 'iqn.2019-06.com.github.wk8.go-win-iscsids.test:'
+$TestIQNRandomCharsCount = 80
+$TestIQNPattern = $TestIQNPrefix + 'X' * $TestIQNRandomCharsCount
+
 if (-not $env:TEMP) {
     throw 'No temp directory set in the TEMP env variable?'
 }
@@ -21,11 +25,13 @@ function targetIQNFromDisksDir([String]$targetDir) {
 }
 
 # meant for best-effort cleanups
-function tryIgnore([ScriptBlock]$callback) {
+function tryIgnore([ScriptBlock]$callback, [Bool]$silent = $false) {
     try {
         $callback.Invoke()
     } catch {
-        # intentionally left blank
+        if (-not $silent) {
+            Write-Host -ForegroundColor yellow "Ignoring error: $_"
+        }
     }
 }
 

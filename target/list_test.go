@@ -4,10 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"golang.org/x/sys/windows"
-
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/wk8/go-win-iscsidsc/internal"
 )
 
 func TestParseIscsiTargets(t *testing.T) {
@@ -22,14 +20,14 @@ func TestParseIscsiTargets(t *testing.T) {
 	paddingLengths := []int{0, 100, 1000}
 
 	for _, paddingLength := range paddingLengths {
-		padding := make([]uint16, paddingLength)
+		padding := make([]byte, paddingLength)
 		for i := 0; i < paddingLength; i++ {
 			padding[i] = 1
 		}
 
 		for _, targets := range testCases {
 			t.Run(fmt.Sprintf("for %v with padding length %d", targets, paddingLength), func(t *testing.T) {
-				output := append(buildIscsiTargetsOutput(t, targets...), padding...)
+				output := append(buildIscsiTargetsOutput(targets...), padding...)
 				parsed, err := parseIscsiTargets(output)
 
 				assert.Nil(t, err)
@@ -39,7 +37,7 @@ func TestParseIscsiTargets(t *testing.T) {
 	}
 
 	t.Run("not double-null terminated", func(t *testing.T) {
-		output := buildIscsiTargetsOutput(t, "foo", "bar")
+		output := buildIscsiTargetsOutput("foo", "bar")
 
 		_, err := parseIscsiTargets(output[:len(output)-1])
 
@@ -47,13 +45,15 @@ func TestParseIscsiTargets(t *testing.T) {
 	})
 
 	t.Run("with too short a buffer", func(t *testing.T) {
-		_, err := parseIscsiTargets([]uint16{0})
+		for _, length := range []int{0, 1, 2, 3} {
+			_, err := parseIscsiTargets(make([]byte, length))
 
-		assert.Equal(t, invalidIscsiTargetsOutput, err)
+			assert.Equal(t, invalidIscsiTargetsOutput, err, "buffer of length %d", length)
+		}
 	})
 
-	t.Run("with a buffer with 2 characters, but the second one is not a null byte", func(t *testing.T) {
-		_, err := parseIscsiTargets([]uint16{0, 1})
+	t.Run("with a buffer with 2 wide characters, but the second one is not a null byte", func(t *testing.T) {
+		_, err := parseIscsiTargets([]byte{0, 0, 0, 1})
 
 		assert.Equal(t, invalidIscsiTargetsOutput, err)
 	})
@@ -61,18 +61,17 @@ func TestParseIscsiTargets(t *testing.T) {
 
 // buildIscsiTargetsOutput builds a well-formed output for ReportIScsiTargetsW, i.e. a list
 // of UTF16-encoded, null-terminated strings, with the last string double null-terminated.
-func buildIscsiTargetsOutput(t *testing.T, targets ...string) []uint16 {
-	result := make([]uint16, 0)
+func buildIscsiTargetsOutput(targets ...string) []byte {
+	result := make([]byte, 0)
 
 	for _, target := range targets {
-		encoded, err := windows.UTF16FromString(target)
-		require.Nil(t, err)
-		result = append(result, encoded...)
+		result = append(result, internal.StringToUTF16ByteBuffer(target)...)
 	}
-	result = append(result, 0)
+	// add a wide null byte
+	result = append(result, 0, 0)
 	if len(targets) == 0 {
-		// need another null byte then
-		result = append(result, 0)
+		// need another wide null byte then
+		result = append(result, 0, 0)
 	}
 
 	return result

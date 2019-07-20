@@ -24,23 +24,23 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 function ensureFeatureInstalled([String]$featureName) {
     $installState = (Get-WindowsFeature -Name $featureName).InstallState
     if ($installState -eq 'Installed') {
-        echo "$featureName already installed"
+        Write-Host -ForegroundColor green "$featureName already installed"
     } else {
-        echo "Installing $featureName..."
+        Write-Host -ForegroundColor green "Installing $featureName..."
         Install-WindowsFeature -Name $featureName -IncludeAllSubFeature -IncludeManagementTools
-        echo "$featureName successfully installed"
+        Write-Host -ForegroundColor green "$featureName successfully installed"
     }
 }
 
 function ensureServiceStarted([String]$serviceName) {
     $status = (Get-Service $serviceName).Status
     if ($status -eq 'Running') {
-        echo "Service $serviceName already running"
+        Write-Host -ForegroundColor green "Service $serviceName already running"
     } else {
-        echo "Starting service $serviceName..."
+        Write-Host -ForegroundColor green "Starting service $serviceName..."
         Start-Service $serviceName
         (Get-Service $serviceName).WaitForStatus('Running', '00:00:30')
-        echo "Service $serviceName successfully started"
+        Write-Host -ForegroundColor green "Service $serviceName successfully started"
     }
 }
 
@@ -69,7 +69,7 @@ function setServerListenSettings([String]$ip, [Int32]$port) {
     if ($currentEndpoint -and ((-not $port) -or ($currentEndpoint.Port -eq $port))) {
         $currentIP = $currentEndpoint.Address.ToString()
         $currentPort = $currentEndpoint.Port
-        echo "iSCSITarget-Server already listening on ${currentIP}:$currentPort"
+        Write-Host -ForegroundColor green "iSCSITarget-Server already listening on ${currentIP}:$currentPort"
         return
     }
 
@@ -80,7 +80,7 @@ function setServerListenSettings([String]$ip, [Int32]$port) {
         $port = 3260
     }
 
-    echo "Setting the iSCSITarget-Server to listen on ${ip}:$port"
+    Write-Host -ForegroundColor green "Setting the iSCSITarget-Server to listen on ${ip}:$port"
     Set-IscsiTargetServerSetting -IP $ip -Port $port
 }
 
@@ -90,4 +90,4 @@ ensureServiceStarted 'MSiSCSI'
 
 setServerListenSettings $ListenIP $ListenPort
 
-echo 'iSCSI services successfully installed and started'
+Write-Host -ForegroundColor green 'iSCSI services successfully installed and started'

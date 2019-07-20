@@ -17,13 +17,13 @@ $global:serviceStopped = $false
 
 function removeTargetDir([String]$targetDir)  {
     $targetIQN = targetIQNFromDisksDir $targetDir
-    echo "Removing target $targetIQN"
+    Write-Host -ForegroundColor green "Removing target $targetIQN"
 
     try {
         removeTarget $targetDir $targetIQN
     } catch {
         if (-not $global:serviceStopped -and ((Get-Service WinTarget).Status -eq 'Running')) {
-            echo "Stopping the service..."
+            Write-Host -ForegroundColor green 'Stopping the service...'
             Stop-Service WinTarget
             $global:serviceStopped = $true
 
@@ -37,12 +37,18 @@ function removeTargetDir([String]$targetDir)  {
 function removeTarget([String]$targetDir, [String]$targetIQN) {
     Get-ChildItem $targetDir -Filter "*$disksExtension" | Foreach-Object {
         tryIgnore { Remove-IscsiVirtualDiskTargetMapping -TargetName $targetIQN -Path $_.FullName }
-        tryIgnore { Remove-IscsiVirtualDisk -Path $diskPath }
+        tryIgnore { Remove-IscsiVirtualDisk -Path $_.FullName }
     }
 
     tryIgnore { Remove-IscsiServerTarget -TargetName $targetIQN -errorAction SilentlyContinue }
-    rm -Force -Recurse -Verbose $targetDir
+    if (Test-Path -Path $targetDir) {
+        rm -Force -Recurse -Verbose $targetDir
+    }
 }
+
+#########################
+# Start of main section #
+#########################
 
 if ($TargetIQN) {
     $targetDir = disksDirForTarget $targetIQN
@@ -59,9 +65,21 @@ if ($TargetIQN) {
             removeTargetDir $_.FullName
         }
     }
+
+    # and attempt to remove any cruft left over from failed teardowns
+    Get-IscsiVirtualDisk | Foreach-Object {
+        if ($_.Path.StartsWith($disksDir)) {
+            tryIgnore { Remove-IscsiVirtualDisk -Path $_.Path }
+        }
+    }
+    Get-IscsiServerTarget | Foreach-Object {
+        if ($_.TargetIQN.ToString().StartsWith($TestIQNPrefix)) {
+            removeTargetDir $(disksDirForTarget $_.TargetIQN)
+        }
+    }
 }
 
 if ($global:serviceStopped) {
-    echo "Re-starting the service"
+    Write-Host -ForegroundColor green 'Re-starting the service'
     Start-Service WinTarget
 }

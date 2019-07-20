@@ -3,7 +3,7 @@
 $global:goBin = 'go'
 if ((Test-Path env:GO_WIN_ISCSI_GOBIN) -and ($env:GO_WIN_ISCSI_GOBIN -ne '')) {
     $global:goBin = $env:GO_WIN_ISCSI_GOBIN
-    echo "#### Using go bin from $global:goBin ###"
+    Write-Host -ForegroundColor yellow "### Using go bin from $global:goBin ###"
     & $global:goBin version
     if (-not$?) {
         throw "$global:goBin doesn't seem to be pointing to a go binary?"
@@ -19,7 +19,7 @@ function runTestsForSubpackages([String[]]$subpackages, [String]$testCase) {
     }
     $displaySubpackages += " $subpackages"
 
-    echo "Running tests for $displaySubpackages"
+    Write-Host -ForegroundColor green "[$(Get-Date)] Running tests for $displaySubpackages"
 
     $testArgs = @(
     'test'

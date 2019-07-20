@@ -1,9 +1,9 @@
 package integrationtests
 
 import (
-	"encoding/hex"
-	"fmt"
+	"io/ioutil"
 	"math/rand"
+	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
@@ -14,8 +14,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/wk8/go-win-iscsidsc"
 	"github.com/wk8/go-win-iscsidsc/internal"
+	"github.com/wk8/go-win-iscsidsc/target"
 	"github.com/wk8/go-win-iscsidsc/targetportal"
 )
 
@@ -24,32 +27,26 @@ var targetPotalEndpointRegex = regexp.MustCompile("^((?:[0-9]{1,3}\\.){3}(?:[0-9
 // getLocalTargetPortals returns a map of the target portals currently listening locally,
 // mapping the IP they listen on to the portal structure.
 // Fails the test immediately if there are none, or if the WinTarget service is not running.
-func getLocalTargetPortals(t *testing.T) map[string]*targetportal.Portal {
+func getLocalTargetPortals(t *testing.T) map[string]*iscsidsc.Portal {
 	powershellCommand := "(Get-IscsiTargetServerSetting).Portals | Where Enabled | ForEach {$_.IPEndpoint.ToString()}"
 	output, err := exec.Command("powershell", "/c", powershellCommand).Output()
-	if err != nil {
-		t.Fatalf("Unable to list local target portals: %v", err)
-	}
+	require.Nil(t, err, "Unable to list local target portals: %v", err)
 
 	lines := strings.Split(string(output), "\n")
-	portals := make(map[string]*targetportal.Portal)
+	portals := make(map[string]*iscsidsc.Portal)
 	for _, line := range lines {
 		if line = strings.TrimSpace(line); line == "" {
 			continue
 		}
 
 		match := targetPotalEndpointRegex.FindStringSubmatch(line)
-		if match == nil {
-			t.Fatalf("Unexpected line when listing local target portals: %q", line)
-		}
+		require.NotNil(t, match, "Unexpected line when listing local target portals: %q", line)
 
 		port, err := strconv.ParseUint(match[2], 10, 16)
-		if err != nil {
-			t.Fatalf("Unable to convert %q to a uint16: %v", match[2], err)
-		}
+		require.Nil(t, err, "Unable to convert %q to a uint16: %v", match[2], err)
 		portUint16 := uint16(port)
 
-		portals[match[1]] = &targetportal.Portal{
+		portals[match[1]] = &iscsidsc.Portal{
 			Address: match[1],
 			Socket:  &portUint16,
 		}
@@ -63,7 +60,7 @@ func getLocalTargetPortals(t *testing.T) map[string]*targetportal.Portal {
 // destructive changes to the system.
 // It returns a list of available local target portals, as well as the other existing targets
 // that have already been added as discovery targets.
-func getUnregisteredLocalTargetPortals(t *testing.T) ([]*targetportal.Portal, []targetportal.PortalInfo) {
+func getUnregisteredLocalTargetPortals(t *testing.T) ([]*iscsidsc.Portal, []iscsidsc.PortalInfo) {
 	localPortals := getLocalTargetPortals(t)
 
 	existingTargets, err := targetportal.ReportIScsiSendTargetPortals()
@@ -73,11 +70,9 @@ func getUnregisteredLocalTargetPortals(t *testing.T) ([]*targetportal.Portal, []
 	for _, target := range existingTargets {
 		delete(localPortals, target.Address)
 	}
-	if len(localPortals) == 0 {
-		t.Fatalf("All local targets have already been added, cowardly refusing to run this test")
-	}
+	require.NotEqual(t, 0, len(localPortals), "All local targets have already been added, cowardly refusing to run this test")
 
-	remainingLocalPortals := make([]*targetportal.Portal, len(localPortals))
+	remainingLocalPortals := make([]*iscsidsc.Portal, len(localPortals))
 	i := 0
 	for _, portal := range localPortals {
 		remainingLocalPortals[i] = portal
@@ -89,11 +84,11 @@ func getUnregisteredLocalTargetPortals(t *testing.T) ([]*targetportal.Portal, []
 
 // used to clean up the target portals added for discovery targets
 type targetPortalCleaner struct {
-	portals []*targetportal.Portal
+	portals []*iscsidsc.Portal
 	ran     bool
 }
 
-func newTargetPortalCleaner(portals ...*targetportal.Portal) *targetPortalCleaner {
+func newTargetPortalCleaner(portals ...*iscsidsc.Portal) *targetPortalCleaner {
 	return &targetPortalCleaner{
 		portals: portals,
 	}
@@ -122,7 +117,7 @@ func (cleaner *targetPortalCleaner) assertCleanupSuccessful(t *testing.T) {
 // registerLocalTargetPortal gets the first unregistered portal from getUnregisteredLocalTargetPortals,
 // registers it with the default options, and returns it along with a targetPortalCleaner to unregister it
 // when done with testing
-func registerLocalTargetPortal(t *testing.T) (*targetportal.Portal, *targetPortalCleaner) {
+func registerLocalTargetPortal(t *testing.T) (*iscsidsc.Portal, *targetPortalCleaner) {
 	portals, _ := getUnregisteredLocalTargetPortals(t)
 	portal := portals[0]
 
@@ -135,29 +130,73 @@ func registerLocalTargetPortal(t *testing.T) (*targetportal.Portal, *targetPorta
 // setupIscsiTarget calls hack/setup_iscsi_target to create a target with a random IQN,
 // then returns both the target's IQN as well as a function to tear it down when done with testing.
 func setupIscsiTarget(t *testing.T, extraArgs ...string) (string, func()) {
-	iqn := "iqn.2019-06.com.github.wk8.go-win-iscsids.test:" + randomHexString(t, 80)
+	iqnFile, err := ioutil.TempFile("", "")
+	require.Nil(t, err, "Error when creating temp file: %v", err)
+	defer func() {
+		require.Nil(t, os.Remove(iqnFile.Name()))
+	}()
+	// need to close it so that the powershell script can write to it
+	require.Nil(t, iqnFile.Close())
 
-	runHackPowershellScript(t, "setup_iscsi_target", append([]string{iqn}, extraArgs...)...)
+	args := []string{
+		"-TestIQN",
+		"-WriteIQNTo", iqnFile.Name(),
+		"-OverwriteIQNFile",
+	}
+
+	runHackPowershellScript(t, "setup_iscsi_target", append(args, extraArgs...)...)
+
+	iqn := strings.TrimSpace(readFile(t, iqnFile.Name()))
+	require.NotEqual(t, 0, len(iqn))
 
 	return iqn, func() {
 		runHackPowershellScript(t, "teardown_iscsi_targets", iqn)
 	}
 }
 
+// setupIscsiTargets sets up count ISCSI targets, and then returns their IQNs as well as a function
+// to tear them down when done with testing.
+func setupIscsiTargets(t *testing.T, count int, extraArgs ...string) ([]string, func()) {
+	iqns := make([]string, count)
+	cleanups := make([]func(), count)
+
+	for i := 0; i < count; i++ {
+		iqn, cleanup := setupIscsiTarget(t, extraArgs...)
+		iqns[i] = iqn
+		cleanups[i] = cleanup
+	}
+
+	return iqns, func() {
+		for _, cleanup := range cleanups {
+			cleanup()
+		}
+	}
+}
+
+// when running scripts from the hack/ directory, runHackPowershellScript below will try that many times
+// before aborting - iSCSI commands can sometimes error out for no apparent reasons, especially on small
+// (eg CI) boxes
+const maxHackPowershellScriptTries = 3
+
 // runHackPowershellScript calls a script from the hack/ directory
 func runHackPowershellScript(t *testing.T, scriptName string, args ...string) {
 	scriptPath := path.Join(repoRoot(t), "hack", scriptName+".ps1")
 
-	if output, err := exec.Command("powershell", append([]string{scriptPath}, args...)...).CombinedOutput(); err != nil {
-		t.Fatalf("Error when running script %q: %v, and output: %s", scriptPath, err, string(output))
+	var output []byte
+	var err error
+	for i := 0; i < maxHackPowershellScriptTries; i++ {
+		output, err = exec.Command("powershell", append([]string{scriptPath}, args...)...).CombinedOutput()
+		if err == nil {
+			return
+		}
 	}
+
+	require.FailNow(t, "runHackPowershellScript failed", "Failed %d times to run script %q: %v, and output: %s", maxHackPowershellScriptTries, scriptPath, err, string(output))
 }
 
 func repoRoot(t *testing.T) string {
 	_, filePath, _, ok := runtime.Caller(0)
-	if !ok {
-		t.Fatalf("Unable to resolve path to repo root")
-	}
+	require.True(t, ok, "Unable to resolve path to repo root")
 	return filepath.Dir(filepath.Dir(filePath))
 }
 
@@ -171,27 +210,13 @@ func shuffle(a []uint) {
 	}
 }
 
-func randomHexString(t *testing.T, length int) string {
-	b := length / 2
-	randBytes := make([]byte, b)
-
-	if n, err := rand.Read(randBytes); err != nil || n != b {
-		if err == nil {
-			err = fmt.Errorf("only got %v random bytes, expected %v", n, b)
-		}
-		t.Fatal(err)
-	}
-
-	return hex.EncodeToString(randBytes)
-}
-
 func assertStringInSlice(t *testing.T, needle string, slice []string) {
 	for _, item := range slice {
 		if item == needle {
 			return
 		}
 	}
-	t.Errorf("%q not found in %v", needle, slice)
+	require.Fail(t, "assertStringInSlice failed", "%q not found in %v", needle, slice)
 }
 
 // setSmallInitialApiBufferSize changes the value of internal.InitialApiBufferSize to 1,
@@ -202,4 +227,44 @@ func setSmallInitialApiBufferSize() func() {
 	return func() {
 		internal.InitialApiBufferSize = previousBufferSize
 	}
+}
+
+func logIntoTargetWithDefaultArgs(targetIqn string) (*iscsidsc.SessionId, *iscsidsc.ConnectionId, error) {
+	return target.LoginIscsiTarget(targetIqn, false, nil, nil, nil, nil, nil, nil, false)
+}
+
+// assertTargetLoginSuccessful should be called with return values from target.LoginIscsiTarget.
+// It asserts the login has been successful, and returns a cleanup function to be called when
+// done with testing to log out from the target.
+func assertTargetLoginSuccessful(t *testing.T, sessionId *iscsidsc.SessionId, connectionId *iscsidsc.ConnectionId, err error) func() {
+	require.Nil(t, err)
+	require.NotNil(t, sessionId)
+	require.NotNil(t, connectionId)
+
+	return func() {
+		assert.Nil(t, target.LogoutIScsiTarget(*sessionId))
+	}
+}
+
+func readFile(t *testing.T, path string) string {
+	file, err := os.Open(path)
+	require.Nil(t, err, "Unable to open %q: %v", path, err)
+	defer func() {
+		require.Nil(t, file.Close())
+	}()
+
+	contents, err := ioutil.ReadAll(file)
+	require.Nil(t, err, "Unable to read %q: %v", path, err)
+
+	return string(contents)
+}
+
+func assertWinApiErrorCode(t *testing.T, err error, expectedErrorCode string) bool {
+	if !assert.NotNil(t, err) {
+		return false
+	}
+	if winApiErr, ok := err.(*iscsidsc.WinApiCallError); assert.True(t, ok) {
+		return assert.Equal(t, expectedErrorCode, winApiErr.HexCode())
+	}
+	return false
 }

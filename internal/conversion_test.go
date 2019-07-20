@@ -1,4 +1,4 @@
-package targetportal
+package internal
 
 import (
 	"strings"
@@ -9,16 +9,16 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/wk8/go-win-iscsidsc/internal"
+	"github.com/wk8/go-win-iscsidsc"
 )
 
 func TestCheckAndConvertLoginOptions(t *testing.T) {
-	runSingleTest := func(testName string, input *LoginOptions, expectedOutput *loginOptions) {
+	runSingleTest := func(testName string, input *iscsidsc.LoginOptions, expectedOutput *LoginOptions) {
 		// that's always the same
-		expectedOutput.version = loginOptionsVersion
+		expectedOutput.Version = LoginOptionsVersion
 
 		t.Run(testName, func(t *testing.T) {
-			output, userNamePtr, passwordPtr, err := checkAndConvertLoginOptions(input)
+			output, userNamePtr, passwordPtr, err := CheckAndConvertLoginOptions(input)
 
 			assert.Nil(t, err)
 			assert.Equal(t, expectedOutput, output)
@@ -27,107 +27,107 @@ func TestCheckAndConvertLoginOptions(t *testing.T) {
 		})
 	}
 
-	runSingleTest("with an empty input", &LoginOptions{}, &loginOptions{})
+	runSingleTest("with an empty input", &iscsidsc.LoginOptions{}, &LoginOptions{})
 
 	testCases := []struct {
 		name               string
-		inputFunc          func(*LoginOptions)
-		expectedOutputFunc func(*loginOptions)
+		inputFunc          func(*iscsidsc.LoginOptions)
+		expectedOutputFunc func(*LoginOptions)
 	}{
 		{
 			name: "auth type",
-			inputFunc: func(optsIn *LoginOptions) {
-				chapAuthType := ChapAuthType
+			inputFunc: func(optsIn *iscsidsc.LoginOptions) {
+				chapAuthType := iscsidsc.ChapAuthType
 				optsIn.AuthType = &chapAuthType
 			},
-			expectedOutputFunc: func(opts *loginOptions) {
-				opts.informationSpecified |= informationSpecifiedAuthType
-				opts.authType = ChapAuthType
+			expectedOutputFunc: func(opts *LoginOptions) {
+				opts.InformationSpecified |= InformationSpecifiedAuthType
+				opts.AuthType = iscsidsc.ChapAuthType
 			},
 		},
 		{
 			name: "header digest",
-			inputFunc: func(optsIn *LoginOptions) {
-				digestTypeCRC32C := DigestTypeCRC32C
+			inputFunc: func(optsIn *iscsidsc.LoginOptions) {
+				digestTypeCRC32C := iscsidsc.DigestTypeCRC32C
 				optsIn.HeaderDigest = &digestTypeCRC32C
 			},
-			expectedOutputFunc: func(opts *loginOptions) {
-				opts.informationSpecified |= informationSpecifiedHeaderDigest
-				opts.headerDigest = DigestTypeCRC32C
+			expectedOutputFunc: func(opts *LoginOptions) {
+				opts.InformationSpecified |= InformationSpecifiedHeaderDigest
+				opts.HeaderDigest = iscsidsc.DigestTypeCRC32C
 			},
 		},
 		{
 			name: "data digest",
-			inputFunc: func(optsIn *LoginOptions) {
-				digestTypeCRC32C := DigestTypeCRC32C
+			inputFunc: func(optsIn *iscsidsc.LoginOptions) {
+				digestTypeCRC32C := iscsidsc.DigestTypeCRC32C
 				optsIn.DataDigest = &digestTypeCRC32C
 			},
-			expectedOutputFunc: func(opts *loginOptions) {
-				opts.informationSpecified |= informationSpecifiedDataDigest
-				opts.dataDigest = DigestTypeCRC32C
+			expectedOutputFunc: func(opts *LoginOptions) {
+				opts.InformationSpecified |= InformationSpecifiedDataDigest
+				opts.DataDigest = iscsidsc.DigestTypeCRC32C
 			},
 		},
 		{
 			name: "max connections",
-			inputFunc: func(optsIn *LoginOptions) {
+			inputFunc: func(optsIn *iscsidsc.LoginOptions) {
 				maximumConnections := uint32(12)
 				optsIn.MaximumConnections = &maximumConnections
 			},
-			expectedOutputFunc: func(opts *loginOptions) {
-				opts.informationSpecified |= informationSpecifiedMaximumConnections
-				opts.maximumConnections = uint32(12)
+			expectedOutputFunc: func(opts *LoginOptions) {
+				opts.InformationSpecified |= InformationSpecifiedMaximumConnections
+				opts.MaximumConnections = uint32(12)
 			},
 		},
 		{
 			name: "time to wait",
-			inputFunc: func(optsIn *LoginOptions) {
+			inputFunc: func(optsIn *iscsidsc.LoginOptions) {
 				timeToWait := uint32(28)
 				optsIn.DefaultTime2Wait = &timeToWait
 			},
-			expectedOutputFunc: func(opts *loginOptions) {
-				opts.informationSpecified |= informationSpecifiedDefaultTime2Wait
-				opts.defaultTime2Wait = uint32(28)
+			expectedOutputFunc: func(opts *LoginOptions) {
+				opts.InformationSpecified |= InformationSpecifiedDefaultTime2Wait
+				opts.DefaultTime2Wait = uint32(28)
 			},
 		},
 		{
 			name: "time to retain",
-			inputFunc: func(optsIn *LoginOptions) {
+			inputFunc: func(optsIn *iscsidsc.LoginOptions) {
 				timeToRetain := uint32(31)
 				optsIn.DefaultTime2Retain = &timeToRetain
 			},
-			expectedOutputFunc: func(opts *loginOptions) {
-				opts.informationSpecified |= informationSpecifiedDefaultTime2Retain
-				opts.defaultTime2Retain = uint32(31)
+			expectedOutputFunc: func(opts *LoginOptions) {
+				opts.InformationSpecified |= InformationSpecifiedDefaultTime2Retain
+				opts.DefaultTime2Retain = uint32(31)
 			},
 		},
 		{
 			name: "username",
-			inputFunc: func(optsIn *LoginOptions) {
+			inputFunc: func(optsIn *iscsidsc.LoginOptions) {
 				username := "username"
 				optsIn.Username = &username
 			},
-			expectedOutputFunc: func(opts *loginOptions) {
-				opts.informationSpecified |= informationSpecifiedUsername
-				opts.usernameLength = uint32(8)
+			expectedOutputFunc: func(opts *LoginOptions) {
+				opts.InformationSpecified |= InformationSpecifiedUsername
+				opts.UsernameLength = uint32(8)
 			},
 		},
 		{
 			name: "password",
-			inputFunc: func(optsIn *LoginOptions) {
+			inputFunc: func(optsIn *iscsidsc.LoginOptions) {
 				password := "super_password"
 				optsIn.Password = &password
 			},
-			expectedOutputFunc: func(opts *loginOptions) {
-				opts.informationSpecified |= informationSpecifiedPassword
-				opts.passwordLength = uint32(14)
+			expectedOutputFunc: func(opts *LoginOptions) {
+				opts.InformationSpecified |= InformationSpecifiedPassword
+				opts.PasswordLength = uint32(14)
 			},
 		},
 	}
 
-	internal.IterateOverAllSubsets(uint(len(testCases)), func(indices []uint) {
+	IterateOverAllSubsets(uint(len(testCases)), func(indices []uint) {
 		testName := "with "
-		input := &LoginOptions{}
-		expectedOutput := &loginOptions{}
+		input := &iscsidsc.LoginOptions{}
+		expectedOutput := &LoginOptions{}
 
 		for j, index := range indices {
 			if j != 0 {
@@ -150,60 +150,60 @@ func TestCheckAndConvertPortal(t *testing.T) {
 	toUTF16 := func(s string) [256]uint16 {
 		utf16, err := windows.UTF16FromString(s)
 		require.Nil(t, err)
-		var result [maxIscsiPortalNameLen]uint16
+		var result [MaxIscsiPortalNameLen]uint16
 		copy(result[:], utf16)
 		return result
 	}
 
 	testCases := []struct {
 		name           string
-		input          *Portal
-		expectedOutput *portal
+		input          *iscsidsc.Portal
+		expectedOutput *Portal
 		expectedError  string
 	}{
 		{
 			name: "happy path",
-			input: &Portal{
+			input: &iscsidsc.Portal{
 				SymbolicName: symbolicName,
 				Address:      address,
 				Socket:       &socket,
 			},
-			expectedOutput: &portal{
-				symbolicName: toUTF16(symbolicName),
-				address:      toUTF16(address),
-				socket:       socket,
+			expectedOutput: &Portal{
+				SymbolicName: toUTF16(symbolicName),
+				Address:      toUTF16(address),
+				Socket:       socket,
 			},
 		},
 		{
 			name:          "portal name too long",
-			input:         &Portal{SymbolicName: strings.Repeat("A", maxIscsiPortalNameLen+1)},
+			input:         &iscsidsc.Portal{SymbolicName: strings.Repeat("A", MaxIscsiPortalNameLen+1)},
 			expectedError: "portal name too long, cannot be more than 256 characters",
 		},
 		{
 			name:          "invalid portal name",
-			input:         &Portal{SymbolicName: "symbolic\x00name"},
+			input:         &iscsidsc.Portal{SymbolicName: "symbolic\x00name"},
 			expectedError: "invalid portal name",
 		},
 		{
 			name:          "portal address too long",
-			input:         &Portal{Address: strings.Repeat("A", maxIscsiPortalAddressLen+1)},
+			input:         &iscsidsc.Portal{Address: strings.Repeat("A", MaxIscsiPortalAddressLen+1)},
 			expectedError: "portal address too long, cannot be more than 256 characters",
 		},
 		{
 			name:          "invalid portal address",
-			input:         &Portal{Address: "1.1.1.1\x00"},
+			input:         &iscsidsc.Portal{Address: "1.1.1.1\x00"},
 			expectedError: "invalid portal address",
 		},
 		{
 			name:           "empty input",
-			input:          &Portal{},
-			expectedOutput: &portal{socket: defaultPortalPortNumber},
+			input:          &iscsidsc.Portal{},
+			expectedOutput: &Portal{Socket: DefaultPortalPortNumber},
 		},
 	}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			output, err := checkAndConvertPortal(testCase.input)
+			output, err := CheckAndConvertPortal(testCase.input)
 
 			if testCase.expectedError == "" {
 				assert.Nil(t, err)

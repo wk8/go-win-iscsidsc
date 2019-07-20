@@ -1,9 +1,6 @@
-package targetportal
+package iscsidsc
 
 // This file contains the public types and constants needed to call this package's API.
-// Any private field or constant present here is simply needed to mirror the C++ Windows API,
-// and will be set or used internally by this package's functions - users should not
-// worry about them.
 //
 // For all enums below, note that the MSVC compiler seems to always use 4-byte ints for enums,
 // though I couldn't get any official documentation on this... Hopefully it doesn't change any time soon!
@@ -72,8 +69,6 @@ type LoginOptions struct {
 type SecurityFlags uint64
 
 const (
-	// securityFlagValid is used internally.
-	securityFlagValid                  SecurityFlags = 0x00000001
 	SecurityFlagIkeIpsecEnabled        SecurityFlags = 0x00000002
 	SecurityFlagMainModeEnabled        SecurityFlags = 0x00000004
 	SecurityFlagAggressiveModeEnabled  SecurityFlags = 0x00000008
@@ -91,4 +86,41 @@ type PortalInfo struct {
 	InitiatorPortNumber uint32
 	SecurityFlags       SecurityFlags
 	LoginOptions        LoginOptions
+}
+
+// SessionId maps to the `ISCSI_UNIQUE_SESSION_ID` C++ struct.
+// see https://docs.microsoft.com/en-us/windows/desktop/api/iscsidsc/ns-iscsidsc-iscsi_unique_session_id
+type SessionId struct {
+	AdapterUnique   uint64
+	AdapterSpecific uint64
+}
+
+// ConnectionId maps to the `ISCSI_UNIQUE_CONNECTION_ID` C++ struct.
+// see https://docs.microsoft.com/en-us/windows/desktop/api/iscsidsc/ns-iscsidsc-iscsi_unique_session_id
+type ConnectionId struct {
+	AdapterUnique   uint64
+	AdapterSpecific uint64
+}
+
+// ConnectionInfo maps to the `ISCSI_CONNECTION_INFOW` C++ struct.
+// see https://docs.microsoft.com/en-us/windows/desktop/api/iscsidsc/ns-iscsidsc-iscsi_connection_infow
+type ConnectionInfo struct {
+	ConnectionId     ConnectionId
+	InitiatorAddress string
+	TargetAddress    string
+	InitiatorSocket  uint16
+	TargetSocket     uint16
+	CID              [2]byte
+}
+
+// SessionInfo maps to the `ISCSI_SESSION_INFOW` C++ struct.
+// see https://docs.microsoft.com/en-us/windows/desktop/api/iscsidsc/ns-iscsidsc-iscsi_session_infow
+type SessionInfo struct {
+	SessionId      SessionId
+	InitiatorName  string
+	TargetNodeName string
+	TargetName     string
+	ISID           [6]byte
+	TSID           [2]byte
+	Connections    []ConnectionInfo
 }

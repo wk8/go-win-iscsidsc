@@ -17,7 +17,7 @@ func NewWinApiCallError(procName string, exitCode uintptr) *WinApiCallError {
 }
 
 func (err *WinApiCallError) Error() string {
-	return fmt.Sprintf("exit code when calling %q: %s - please see Windows' documentation at https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/18d8fbe8-a967-4f1c-ae50-99ca8e491d2d or https://docs.microsoft.com/en-us/windows-hardware/drivers/storage/iscsi-status-qualifiers and/or check your system logs in the event viewer",
+	return fmt.Sprintf("exit code when calling %q: %s - please see Windows' documentation at https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-erref/18d8fbe8-a967-4f1c-ae50-99ca8e491d2d or https://docs.microsoft.com/en-us/windows-hardware/drivers/storage/iscsi-status-qualifiers and/or check your system logs in Windows' event viewer",
 		err.procName,
 		err.HexCode())
 }

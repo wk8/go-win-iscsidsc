@@ -58,14 +58,14 @@ func TestAddTargetPortalWithLoginOptionsAndSecurityFlags(t *testing.T) {
 	portal := remainingLocalPortals[0]
 	portal.SymbolicName = "test-portal-with-login-options-and-security-flags"
 
-	dataDigest := targetportal.DigestTypeCRC32C
+	dataDigest := iscsidsc.DigestTypeCRC32C
 	defaultTime2Wait := uint32(28)
-	loginOptions := &targetportal.LoginOptions{
-		LoginFlags:       targetportal.LoginFlagMultipathEnabled | targetportal.LoginFlagUseRadiusVerification,
+	loginOptions := &iscsidsc.LoginOptions{
+		LoginFlags:       iscsidsc.LoginFlagMultipathEnabled | iscsidsc.LoginFlagUseRadiusVerification,
 		DataDigest:       &dataDigest,
 		DefaultTime2Wait: &defaultTime2Wait,
 	}
-	securityFlags := targetportal.SecurityFlagIkeIpsecEnabled | targetportal.SecurityFlagTransportModePreferred
+	securityFlags := iscsidsc.SecurityFlagIkeIpsecEnabled | iscsidsc.SecurityFlagTransportModePreferred
 
 	portalCleaner := newTargetPortalCleaner(portal)
 	defer portalCleaner.cleanup()
@@ -98,12 +98,9 @@ func TestAddUnresponsiveTargetPortal(t *testing.T) {
 	defer portalCleaner.cleanup()
 
 	err := targetportal.AddIScsiSendTargetPortal(nil, nil, nil, nil, portal)
-	require.NotNil(t, err)
-	winApiErr, ok := err.(*iscsidsc.WinApiCallError)
-	require.True(t, ok)
 	// see https://docs.microsoft.com/en-us/windows-hardware/drivers/storage/iscsi-status-qualifiers
 	// 0xEFFF0003 is a connection failure
-	require.Equal(t, "0xEFFF0003", winApiErr.HexCode())
+	assertWinApiErrorCode(t, err, "0xEFFF0003")
 
 	// cleanup
 	portalCleaner.assertCleanupSuccessful(t)
@@ -114,10 +111,10 @@ func TestAddTargetPortalWithDiscoveryChapAuthentication(t *testing.T) {
 	portal := remainingLocalPortals[0]
 	portal.SymbolicName = "test-portal-with-chap-authentication"
 
-	authType := targetportal.ChapAuthType
+	authType := iscsidsc.ChapAuthType
 	chapUser := "username"
 	chapPassword := "passwordpassword"
-	loginOptions := &targetportal.LoginOptions{
+	loginOptions := &iscsidsc.LoginOptions{
 		AuthType: &authType,
 		Username: &chapUser,
 		Password: &chapPassword,
@@ -128,12 +125,9 @@ func TestAddTargetPortalWithDiscoveryChapAuthentication(t *testing.T) {
 
 	// creating the portal should result in an error as Windows targets don't support CHAP for discovery (yet?)
 	err := targetportal.AddIScsiSendTargetPortal(nil, nil, loginOptions, nil, portal)
-	require.NotNil(t, err)
-	winApiErr, ok := err.(*iscsidsc.WinApiCallError)
-	require.True(t, ok)
 	// see https://docs.microsoft.com/en-us/windows-hardware/drivers/storage/iscsi-status-qualifiers
 	// 0xEFFF0009 is an authentication failure
-	require.Equal(t, "0xEFFF0009", winApiErr.HexCode())
+	assertWinApiErrorCode(t, err, "0xEFFF0009")
 
 	// it should show up anyway when listing all target portals
 	portalInfo := findPortal(t, portal, len(existingTargets)+1)
@@ -162,7 +156,7 @@ func TestListingTargetsWithSmallerInitialBuffer(t *testing.T) {
 	}
 
 	// now we get to the interesting part: we lower the initial buffer size for listing calls
-	defer setSmallInitialApiBufferSize()
+	defer setSmallInitialApiBufferSize()()
 
 	// and make that listing call
 	allTargets, err := targetportal.ReportIScsiSendTargetPortals()
@@ -174,13 +168,13 @@ func TestListingTargetsWithSmallerInitialBuffer(t *testing.T) {
 }
 
 // findPortal looks amongst the registered target portals for the given portal, and returns its info data.
-func findPortal(t *testing.T, portal *targetportal.Portal, expectedPortalsCount int) *targetportal.PortalInfo {
+func findPortal(t *testing.T, portal *iscsidsc.Portal, expectedPortalsCount int) *iscsidsc.PortalInfo {
 	portals, err := targetportal.ReportIScsiSendTargetPortals()
 	if assert.Nil(t, err) {
 		assert.Equal(t, expectedPortalsCount, len(portals))
 
 		// find the portal we want in there
-		var result *targetportal.PortalInfo
+		var result *iscsidsc.PortalInfo
 		for _, portalInfo := range portals {
 			if reflect.DeepEqual(portalInfo.Portal, *portal) {
 				result = &portalInfo

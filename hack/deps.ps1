@@ -24,9 +24,9 @@ $glideURL = "https://github.com/Masterminds/glide/releases/download/v$glideVersi
 $glideBin = "$repoRootDir/dev/glide-$glideVersion.exe"
 
 if ([System.IO.File]::Exists($glideBin)) {
-    echo 'Glide already up-to-date'
+    Write-Host -ForegroundColor green 'Glide already up-to-date'
 } else {
-    echo "Downloading glide from $glideURL"
+    Write-Host -ForegroundColor green "Downloading glide from $glideURL"
 
     $downloadDir = "$env:TEMP/glide-$glideVersion"
     $archivePath = "$downloadDir/glide.zip"
