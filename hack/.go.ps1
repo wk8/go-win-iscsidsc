@@ -22,9 +22,11 @@ function runTestsForSubpackages([String[]]$subpackages, [String]$testCase) {
     Write-Host -ForegroundColor green "[$(Get-Date)] Running tests for $displaySubpackages"
 
     $testArgs = @(
-    'test'
-    '-v'
-    '-count=1'
+        'test'
+        '-v'
+        '-count=1'
+        # some tests (eg integration tests) can take a while on smaller boxes
+        '-timeout=60m'
     )
     $testArgs += $subpackages
 

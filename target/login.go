@@ -53,6 +53,9 @@ func LoginIscsiTarget(targetName string, isInformationalSession bool, initiatorI
 		keyPtr, keySize, isPersistent)
 }
 
+//go:uintptrescapes
+//go:noinline
+
 func callProcLoginIScsiTargetW(targetNamePtr *uint16, isInformationalSession bool, initiatorInstancePtr *uint16, initiatorPortNumberValue uint32,
 	internalPortal *internal.Portal, securityFlagsValue iscsidsc.SecurityFlags, internalLoginOptions *internal.LoginOptions,
 	userNameUintptr, passwordUintptr uintptr, keyPtr *byte, keySize uint32, isPersistent bool) (*iscsidsc.SessionId, *iscsidsc.ConnectionId, error) {

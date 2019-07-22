@@ -46,6 +46,9 @@ func AddIScsiConnectionW(id iscsidsc.SessionId, initiatorPortNumber *uint32, tar
 		keyPtr, keySize)
 }
 
+//go:uintptrescapes
+//go:noinline
+
 func callProcAddIScsiConnectionW(id iscsidsc.SessionId, initiatorPortNumberValue uint32, internalPortal *internal.Portal,
 	securityFlagsValue iscsidsc.SecurityFlags, internalLoginOptions *internal.LoginOptions,
 	userNameUintptr, passwordUintptr uintptr, keyPtr *byte, keySize uint32) (*iscsidsc.ConnectionId, error) {

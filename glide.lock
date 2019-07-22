@@ -1,17 +1,14 @@
 hash: 8307d13b6bc52ae4cd61ec09adfd7b25f231a3e2f53caa7ee650f3196f7bf31f
-updated: 2019-06-05T15:45:37.659753-07:00
+updated: 2019-07-22T12:28:11.20454-07:00
 imports:
-- name: github.com/pkg/errors
-  version: 645ef00459ed84a119197bfb8d8205042c6df63d
-- name: golang.org/x/sys
-  version: 95c6576299259db960f6c5b9b69ea52422860fce
-  subpackages:
-  - windows
-testImports:
 - name: github.com/davecgh/go-spew
   version: 782f4967f2dc4564575ca782fe2d04090b5faca8
   subpackages:
   - spew
+- name: github.com/google/uuid
+  version: c2e93f3ae59f2904160ceaab466009f965df46d6
+- name: github.com/pkg/errors
+  version: 645ef00459ed84a119197bfb8d8205042c6df63d
 - name: github.com/pmezard/go-difflib
   version: 5d4384ee4fb2527b0a1256a821ebfc92f91efefc
   subpackages:
@@ -20,3 +17,13 @@ testImports:
   version: c679ae2cc0cb27ec3293fea7e254e47386f05d69
   subpackages:
   - assert
+  - require
+- name: golang.org/x/sys
+  version: 95c6576299259db960f6c5b9b69ea52422860fce
+  subpackages:
+  - windows
+testImports:
+- name: gotest.tools
+  version: 400e4d0d57c4f2af599ed495cf91fe5110b618e8
+  subpackages:
+  - poll

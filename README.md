@@ -1,4 +1,4 @@
-[![Build status](https://ci.appveyor.com/api/projects/status/dny7fslh0qc2em45?svg=true)](https://ci.appveyor.com/project/wk8/go-win-iscsidsc)
+[![Build status](https://ci.appveyor.com/api/projects/status/github/wk8/go-win-iscsidsc?branch=master&svg=true)](https://ci.appveyor.com/project/wk8/go-win-iscsidsc/branch/master)
 
 # go-win-iscsidsc
 

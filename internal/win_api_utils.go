@@ -20,7 +20,7 @@ var (
 	// Having it as a var and not a constant allows overriding it during tests.
 	// Note that on some versions of Windows, if this is too big, some API calls might result in ERROR_NOACCESS
 	// errors (...?)
-	InitialApiBufferSize uintptr = 50000
+	InitialApiBufferSize uintptr = 100000
 )
 
 func GetDllProc(name string) *windows.LazyProc {
@@ -48,7 +48,7 @@ func CallWinApi(proc *windows.LazyProc, args ...uintptr) (uintptr, error) {
 // the caller has to allocate a buffer, and the proc fills that buffer, returning an object count and a byte count.
 // typeSize is the size, in bytes, of the type the API calls expect the buffer to be (eg 1 for CHAR, 2 for WCHAR, etc...)
 func HandleBufferedWinApiCall(f func(s, c, b uintptr) (uintptr, error), procName string, typeSize uintptr) (buffer []byte, bufferPointer uintptr, count int32, err error) {
-	bufferSize := InitialApiBufferSize
+	bufferSize := InitialApiBufferSize/typeSize + 1
 	var exitCode uintptr
 
 	for {

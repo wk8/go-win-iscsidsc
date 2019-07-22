@@ -74,6 +74,12 @@ const DefaultPortalPortNumber uint16 = 3260
 // MaxHbaNameLen maps to the `MAX_ISCSI_HBANAME_LEN` C++ constant.
 const MaxHbaNameLen = 256
 
+// MaxIscsiNameLen maps to the `MAX_ISCSI_NAME_LEN` C++ constant.
+const MaxIscsiNameLen = 223
+
+// MaxPath maps to the `MAX_PATH` C++ constant.
+const MaxPath = 260
+
 // PortalInfo maps to the `ISCSI_TARGET_PORTAL_INFO_EXW` C++ struct.
 // see https://docs.microsoft.com/en-us/windows/desktop/api/iscsidsc/ns-iscsidsc-iscsi_target_portal_info_exw
 type PortalInfo struct {
@@ -124,3 +130,39 @@ var (
 	emptySessionInfo = SessionInfo{}
 	SessionInfoSize  = unsafe.Sizeof(emptySessionInfo)
 )
+
+// Device maps to the `ISCSI_DEVICE_ON_SESSIONW` C++ struct.
+// see https://docs.microsoft.com/en-us/windows/win32/api/iscsidsc/ns-iscsidsc-iscsi_device_on_sessionw
+type Device struct {
+	InitiatorName       [MaxHbaNameLen]uint16
+	TargetName          [MaxIscsiNameLen + 1]uint16
+	ScsiAddress         ScsiAddress
+	DeviceInterfaceType GUID
+	DeviceInterfaceName [MaxPath]uint16
+	LegacyName          [MaxPath]uint16
+	StorageDeviceNumber iscsidsc.StorageDeviceNumber
+	DeviceInstance      uint32
+}
+
+var (
+	emptyDevice = Device{}
+	DeviceSize  = unsafe.Sizeof(emptyDevice)
+)
+
+// GUID maps to the `GUID` C++ struct
+type GUID struct {
+	Data1 uint32
+	Data2 uint16
+	Data3 uint16
+	Data4 [8]byte
+}
+
+// ScsiAddress maps to the `SCSI_ADDRESS` C++ struct.
+// see https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/content/ntddscsi/ns-ntddscsi-_scsi_address
+type ScsiAddress struct {
+	Length     uint32
+	PortNumber uint8
+	PathId     uint8
+	TargetId   uint8
+	Lun        uint8
+}

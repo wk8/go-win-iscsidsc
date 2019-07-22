@@ -5,6 +5,10 @@ package iscsidsc
 // For all enums below, note that the MSVC compiler seems to always use 4-byte ints for enums,
 // though I couldn't get any official documentation on this... Hopefully it doesn't change any time soon!
 
+import (
+	"github.com/google/uuid"
+)
+
 // Portal maps to the `ISCSI_TARGET_PORTALW` C++ struct.
 // see https://docs.microsoft.com/en-us/windows/desktop/api/iscsidsc/ns-iscsidsc-iscsi_target_portalw
 type Portal struct {
@@ -123,4 +127,34 @@ type SessionInfo struct {
 	ISID           [6]byte
 	TSID           [2]byte
 	Connections    []ConnectionInfo
+}
+
+// Device maps to the `ISCSI_DEVICE_ON_SESSIONW` C++ struct.
+// see https://docs.microsoft.com/en-us/windows/win32/api/iscsidsc/ns-iscsidsc-iscsi_device_on_sessionw
+type Device struct {
+	InitiatorName       string
+	TargetName          string
+	ScsiAddress         ScsiAddress
+	DeviceInterfaceType uuid.UUID
+	DeviceInterfaceName string
+	LegacyName          string
+	StorageDeviceNumber StorageDeviceNumber
+	DeviceInstance      uint32
+}
+
+// ScsiAddress maps to the `SCSI_ADDRESS` C++ struct.
+// see https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/content/ntddscsi/ns-ntddscsi-_scsi_address
+type ScsiAddress struct {
+	PortNumber uint8
+	PathId     uint8
+	TargetId   uint8
+	Lun        uint8
+}
+
+// StorageDeviceNumber maps to the `STORAGE_DEVICE_NUMBER` C++ struct.
+// see https://docs.microsoft.com/en-us/windows/win32/api/winioctl/ns-winioctl-_storage_device_number
+type StorageDeviceNumber struct {
+	DeviceType      uint32
+	DeviceNumber    uint32
+	PartitionNumber uint32
 }
