@@ -10,6 +10,14 @@ if ((Test-Path env:GO_WIN_ISCSI_GOBIN) -and ($env:GO_WIN_ISCSI_GOBIN -ne '')) {
     }
 }
 
+if ((Test-Path env:GOPATH) -and ($env:GOPATH -ne '')) {
+    $env:Path += ";$env:GOPATH/bin"
+}
+
+if ((Test-Path env:GOROOT) -and ($env:GOROOT -ne '')) {
+    $env:Path += ";$env:GOROOT/bin"
+}
+
 function runTestsForSubpackages([String[]]$subpackages, [String]$testCase) {
     $subpackages = $subpackages | ForEach-Object { $subpackage = $_.TrimStart("\/."); "./$subpackage" }
 
@@ -40,7 +48,7 @@ function runTestsForSubpackages([String[]]$subpackages, [String]$testCase) {
 
         & $global:goBin $testArgs
 
-        if (-not$?) {
+        if (-not $?) {
             throw "tests failed for $displaySubpackages"
         }
     } finally {

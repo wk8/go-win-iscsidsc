@@ -33,6 +33,7 @@ before_test:
 test_script:
   - powershell -File hack/unit_tests.ps1
   - powershell -File hack/integration_tests.ps1
+  - powershell -File hack/lint.ps1 -UpdateTools
 
 after_test:
   - powershell -File hack/teardown_iscsi_targets.ps1

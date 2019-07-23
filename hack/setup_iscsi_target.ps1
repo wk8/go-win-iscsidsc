@@ -7,7 +7,7 @@ Param(
     [Parameter(Mandatory=$false)] [Switch] $RandomizeIQN = $false, # if true, all 'X' characters in the IQN will be replaced by random alpha-numeric characters, à la mktemp
                                                                    # it will also ensure that whatever random name it comes up with is not taken yet
     [Parameter(Mandatory=$false)] [Switch] $TestIQN = $false, # if true, equivalent to $TargetIQN = $TestIQNPattern and $RandomizeIQN = $true
-    [Parameter(Mandatory=$false)] [String] $WriteIQNTo, # if set, the IQN will be written to this file after the target's creation
+    [Parameter(Mandatory=$false)] [String] $WriteIQNTo = $false, # if set, the IQN will be written to this file after the target's creation
                                                         # comes in handy to retrieve the IQN when randomized
     [Parameter(Mandatory=$false)] [Switch] $OverwriteIQNFile = $false, # if $WriteIQNTo points to a file that already exists, this script
                                                                        # will refuse to overwrite it unless $OverwriteIQNFile is true
