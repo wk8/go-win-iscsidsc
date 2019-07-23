@@ -16,12 +16,6 @@ environment:
     - GOROOT: C:\go111
       GO_WIN_ISCSI_GOBIN: c:\go111\bin\go
 
-    - GOROOT: C:\go110
-      GO_WIN_ISCSI_GOBIN: c:\go110\bin\go
-
-    - GOROOT: C:\go19
-      GO_WIN_ISCSI_GOBIN: c:\go19\bin\go
-
 cache:
   # contains glide's cache
   - '%USERPROFILE%\.glide'

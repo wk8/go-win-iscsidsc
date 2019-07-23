@@ -30,4 +30,4 @@ If you need more functions, please feel free to open an issue, or even better a 
 
 ## Supported go versions
 
-Our [automated builds](https://ci.appveyor.com/project/wk8/go-win-iscsidsc/branch/master) ensure that compatibility with go versions 1.9 to 1.12 included.
+[Automated builds](https://ci.appveyor.com/project/wk8/go-win-iscsidsc/branch/master) ensure that compatibility with go versions 1.11 and 1.12.
