@@ -9,7 +9,7 @@ import (
 	"math"
 	"unsafe"
 
-	"github.com/wk8/go-win-iscsidsc"
+	iscsidsc "github.com/wk8/go-win-iscsidsc"
 )
 
 // LoginOptions maps to the `ISCSI_LOGIN_OPTIONS` C++ struct.
@@ -42,6 +42,7 @@ const LoginOptionsVersion uint32 = 0
 // see the "InformationSpecified" section of https://docs.microsoft.com/en-us/windows/desktop/api/iscsidsc/ns-iscsidsc-iscsi_login_options
 type InformationSpecified uint32
 
+// The flags for the various pieces of information that can be specified in login options.
 const (
 	InformationSpecifiedHeaderDigest       InformationSpecified = 0x00000001
 	InformationSpecifiedDataDigest         InformationSpecified = 0x00000002
@@ -69,6 +70,8 @@ const MaxIscsiPortalNameLen = 256
 // MaxIscsiPortalAddressLen maps to the `MAX_ISCSI_PORTAL_ADDRESS_LEN` C++ constant.
 const MaxIscsiPortalAddressLen = 256
 
+// DefaultPortalPortNumber is the default port on which target portals are expected
+// to be listening on if no other port is explicitly provided.
 const DefaultPortalPortNumber uint16 = 3260
 
 // MaxHbaNameLen maps to the `MAX_ISCSI_HBANAME_LEN` C++ constant.
@@ -94,13 +97,15 @@ type PortalInfo struct {
 
 var (
 	emptyPrivatePortalInfo = PortalInfo{}
-	PortalInfoSize         = unsafe.Sizeof(emptyPrivatePortalInfo)
+
+	// PortalInfoSize is the size, in bytes, of the internal `PortalInfo` type.
+	PortalInfoSize = unsafe.Sizeof(emptyPrivatePortalInfo)
 )
 
 // ConnectionInfo maps to the `ISCSI_CONNECTION_INFOW` C++ struct.
 // see https://docs.microsoft.com/en-us/windows/desktop/api/iscsidsc/ns-iscsidsc-iscsi_connection_infow
 type ConnectionInfo struct {
-	ConnectionId     iscsidsc.ConnectionId
+	ConnectionID     iscsidsc.ConnectionID
 	InitiatorAddress uintptr
 	TargetAddress    uintptr
 	InitiatorSocket  uint16
@@ -110,13 +115,14 @@ type ConnectionInfo struct {
 
 var (
 	emptyConnectionInfo = ConnectionInfo{}
-	ConnectionInfoSize  = unsafe.Sizeof(emptyConnectionInfo)
+	// ConnectionInfoSize is the size, in bytes, of the internal `ConnectionInfo` type.
+	ConnectionInfoSize = unsafe.Sizeof(emptyConnectionInfo)
 )
 
 // SessionInfo maps to the `ISCSI_SESSION_INFOW` C++ struct.
 // see https://docs.microsoft.com/en-us/windows/desktop/api/iscsidsc/ns-iscsidsc-iscsi_session_infow
 type SessionInfo struct {
-	SessionId       iscsidsc.SessionId
+	SessionID       iscsidsc.SessionID
 	InitiatorName   uintptr
 	TargetNodeName  uintptr
 	TargetName      uintptr
@@ -128,7 +134,8 @@ type SessionInfo struct {
 
 var (
 	emptySessionInfo = SessionInfo{}
-	SessionInfoSize  = unsafe.Sizeof(emptySessionInfo)
+	// SessionInfoSize is the size, in bytes, of the internal `SessionInfo` type.
+	SessionInfoSize = unsafe.Sizeof(emptySessionInfo)
 )
 
 // Device maps to the `ISCSI_DEVICE_ON_SESSIONW` C++ struct.
@@ -146,7 +153,8 @@ type Device struct {
 
 var (
 	emptyDevice = Device{}
-	DeviceSize  = unsafe.Sizeof(emptyDevice)
+	// DeviceSize is the size, in bytes, of the internal `Device` type.
+	DeviceSize = unsafe.Sizeof(emptyDevice)
 )
 
 // GUID maps to the `GUID` C++ struct
@@ -162,7 +170,7 @@ type GUID struct {
 type ScsiAddress struct {
 	Length     uint32
 	PortNumber uint8
-	PathId     uint8
-	TargetId   uint8
+	PathID     uint8
+	TargetID   uint8
 	Lun        uint8
 }

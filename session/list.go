@@ -5,13 +5,13 @@ import (
 	"unsafe"
 
 	"github.com/pkg/errors"
-	"github.com/wk8/go-win-iscsidsc"
+	iscsidsc "github.com/wk8/go-win-iscsidsc"
 	"github.com/wk8/go-win-iscsidsc/internal"
 )
 
 var procGetIScsiSessionListW = internal.GetDllProc("GetIScsiSessionListW")
 
-// GetIscsiSessionList retrieves the list of active iSCSI sessions.
+// GetIScsiSessionList retrieves the list of active iSCSI sessions.
 // see https://docs.microsoft.com/en-us/windows/desktop/api/iscsidsc/nf-iscsidsc-getiscsisessionlistw
 func GetIScsiSessionList() ([]iscsidsc.SessionInfo, error) {
 	buffer, bufferPointer, count, err := retrieveSessionInfos()
@@ -29,9 +29,9 @@ func GetIScsiSessionList() ([]iscsidsc.SessionInfo, error) {
 
 // retrieveSessionInfos gets the raw session infos from the Windows API.
 func retrieveSessionInfos() (buffer []byte, bufferPointer uintptr, count int32, err error) {
-	return internal.HandleBufferedWinApiCall(
+	return internal.HandleBufferedWinAPICall(
 		func(s, c, b uintptr) (uintptr, error) {
-			return internal.CallWinApi(procGetIScsiSessionListW, s, c, b)
+			return internal.CallWinAPI(procGetIScsiSessionListW, s, c, b)
 		},
 		procGetIScsiSessionListW.Name,
 		1,
@@ -49,7 +49,7 @@ func hydrateSessionInfos(buffer []byte, bufferPointer uintptr, count int) ([]isc
 	}
 
 	sessions := make([]iscsidsc.SessionInfo, count)
-	var bytesRead uintptr = 0
+	var bytesRead uintptr
 	for i := 0; i < count; i++ {
 		read, err := hydrateSessionInfo(buffer, bufferPointer, i, &sessions[i])
 		bytesRead += read
@@ -69,7 +69,7 @@ func hydrateSessionInfo(buffer []byte, bufferPointer uintptr, i int, info *iscsi
 	infoIn := (*internal.SessionInfo)(unsafe.Pointer(&buffer[uintptr(i)*internal.SessionInfoSize]))
 	bytesRead := internal.SessionInfoSize
 
-	info.SessionId = infoIn.SessionId
+	info.SessionID = infoIn.SessionID
 
 	initiatorName, read, err := internal.ExtractWideStringFromBuffer(buffer, bufferPointer, infoIn.InitiatorName)
 	bytesRead += read
@@ -127,7 +127,7 @@ func hydrateConnectionInfos(buffer []byte, bufferPointer, connectionsOffset uint
 	}
 
 	connections := make([]iscsidsc.ConnectionInfo, connectionCount)
-	var bytesRead uintptr = 0
+	var bytesRead uintptr
 	for i := 0; i < connectionCount; i++ {
 		read, err := hydrateConnectionInfo(buffer, bufferPointer, connectionsOffset, i, &connections[i])
 		bytesRead += read
@@ -143,7 +143,7 @@ func hydrateConnectionInfo(buffer []byte, bufferPointer, connectionsOffset uintp
 	infoIn := (*internal.ConnectionInfo)(unsafe.Pointer(&buffer[connectionsOffset+uintptr(i)*internal.ConnectionInfoSize]))
 	bytesRead := internal.ConnectionInfoSize
 
-	info.ConnectionId = infoIn.ConnectionId
+	info.ConnectionID = infoIn.ConnectionID
 
 	initiatorAddress, read, err := internal.ExtractWideStringFromBuffer(buffer, bufferPointer, infoIn.InitiatorAddress)
 	bytesRead += read

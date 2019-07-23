@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/wk8/go-win-iscsidsc"
+	iscsidsc "github.com/wk8/go-win-iscsidsc"
 	"github.com/wk8/go-win-iscsidsc/internal"
 	"github.com/wk8/go-win-iscsidsc/targetportal"
 )
@@ -92,7 +92,7 @@ func TestAddUnresponsiveTargetPortal(t *testing.T) {
 	portal.SymbolicName = "test-unresponsive-portal"
 	// let's try to connect on the wrong port
 	require.NotNil(t, portal.Socket)
-	*portal.Socket += 1
+	*portal.Socket++
 
 	portalCleaner := newTargetPortalCleaner(portal)
 	defer portalCleaner.cleanup()
@@ -100,18 +100,18 @@ func TestAddUnresponsiveTargetPortal(t *testing.T) {
 	err := targetportal.AddIScsiSendTargetPortal(nil, nil, nil, nil, portal)
 	// see https://docs.microsoft.com/en-us/windows-hardware/drivers/storage/iscsi-status-qualifiers
 	// 0xEFFF0003 is a connection failure
-	assertWinApiErrorCode(t, err, "0xEFFF0003")
+	assertWinAPIErrorCode(t, err, "0xEFFF0003")
 
 	// cleanup
 	portalCleaner.assertCleanupSuccessful(t)
 }
 
-func TestAddTargetPortalWithDiscoveryChapAuthentication(t *testing.T) {
+func TestAddTargetPortalWithDiscoveryCHAPAuthentication(t *testing.T) {
 	remainingLocalPortals, existingTargets := getUnregisteredLocalTargetPortals(t)
 	portal := remainingLocalPortals[0]
 	portal.SymbolicName = "test-portal-with-chap-authentication"
 
-	authType := iscsidsc.ChapAuthType
+	authType := iscsidsc.CHAPAuthType
 	chapUser := "username"
 	chapPassword := "passwordpassword"
 	loginOptions := &iscsidsc.LoginOptions{
@@ -127,7 +127,7 @@ func TestAddTargetPortalWithDiscoveryChapAuthentication(t *testing.T) {
 	err := targetportal.AddIScsiSendTargetPortal(nil, nil, loginOptions, nil, portal)
 	// see https://docs.microsoft.com/en-us/windows-hardware/drivers/storage/iscsi-status-qualifiers
 	// 0xEFFF0009 is an authentication failure
-	assertWinApiErrorCode(t, err, "0xEFFF0009")
+	assertWinAPIErrorCode(t, err, "0xEFFF0009")
 
 	// it should show up anyway when listing all target portals
 	portalInfo := findPortal(t, portal, len(existingTargets)+1)
@@ -156,7 +156,7 @@ func TestListingTargetsWithSmallerInitialBuffer(t *testing.T) {
 	}
 
 	// now we get to the interesting part: we lower the initial buffer size for listing calls
-	defer setSmallInitialApiBufferSize()()
+	defer setSmallInitialAPIBufferSize()()
 
 	// and make that listing call
 	allTargets, err := targetportal.ReportIScsiSendTargetPortals()

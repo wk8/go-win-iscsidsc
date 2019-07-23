@@ -7,13 +7,13 @@ import (
 	"golang.org/x/sys/windows"
 
 	"github.com/pkg/errors"
-	"github.com/wk8/go-win-iscsidsc"
+	iscsidsc "github.com/wk8/go-win-iscsidsc"
 	"github.com/wk8/go-win-iscsidsc/internal"
 )
 
 var procReportIScsiSendTargetPortalsExW = internal.GetDllProc("ReportIScsiSendTargetPortalsExW")
 
-// ReportIscsiSendTargetPortalsEx function retrieves a list of static target portals that the iSCSI initiator
+// ReportIScsiSendTargetPortals retrieves a list of static target portals that the iSCSI initiator
 // service uses to perform automatic discovery with SendTarget requests.
 // see https://docs.microsoft.com/en-us/windows/desktop/api/iscsidsc/nf-iscsidsc-reportiscsisendtargetportalsexw
 func ReportIScsiSendTargetPortals() ([]iscsidsc.PortalInfo, error) {
@@ -35,9 +35,9 @@ func ReportIScsiSendTargetPortals() ([]iscsidsc.PortalInfo, error) {
 
 // retrievePortalInfos gets the raw portal infos from the Windows API.
 func retrievePortalInfos() (buffer []byte, bufferPointer uintptr, count int32, err error) {
-	return internal.HandleBufferedWinApiCall(
+	return internal.HandleBufferedWinAPICall(
 		func(s, c, b uintptr) (uintptr, error) {
-			return internal.CallWinApi(procReportIScsiSendTargetPortalsExW, c, s, b)
+			return internal.CallWinAPI(procReportIScsiSendTargetPortalsExW, c, s, b)
 		},
 		procReportIScsiSendTargetPortalsExW.Name,
 		1,
@@ -55,7 +55,7 @@ func hydrateTargetPortalInfos(buffer []byte, bufferPointer uintptr, count int) (
 	}
 
 	portalInfos := make([]iscsidsc.PortalInfo, count)
-	var bytesRead uintptr = 0
+	var bytesRead uintptr
 	for i := 0; i < count; i++ {
 		read, err := hydrateTargetPortalInfo(buffer, bufferPointer, i, &portalInfos[i])
 		bytesRead += read
@@ -123,7 +123,7 @@ func hydrateLoginOptions(optsIn *internal.LoginOptions, buffer []byte, bufferPoi
 		opts.DefaultTime2Retain = &defaultTime2Retain
 	}
 
-	var bytesRead uintptr = 0
+	var bytesRead uintptr
 	if optsIn.InformationSpecified&internal.InformationSpecifiedUsername != 0 && optsIn.UsernameLength != 0 && optsIn.Username != 0 {
 		username, err := internal.ExtractStringFromBuffer(buffer, bufferPointer, optsIn.Username, uintptr(optsIn.UsernameLength))
 		if err != nil {

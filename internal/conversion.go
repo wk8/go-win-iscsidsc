@@ -6,7 +6,7 @@ import (
 	"golang.org/x/sys/windows"
 
 	"github.com/pkg/errors"
-	"github.com/wk8/go-win-iscsidsc"
+	iscsidsc "github.com/wk8/go-win-iscsidsc"
 )
 
 // CheckAndConvertLoginOptions translates the user-facing `LoginOptions` struct
@@ -114,6 +114,8 @@ func CheckAndConvertPortal(ptlIn *iscsidsc.Portal) (*Portal, error) {
 	return ptl, nil
 }
 
+// ConvertInitiatorArgs converts user-facing initiator arguments to internal
+// types compatible with Windows' API.
 func ConvertInitiatorArgs(initiatorInstance *string, initiatorPortNumber *uint32) (*uint16, uint32, error) {
 	var (
 		initiatorInstancePtr *uint16
@@ -129,6 +131,8 @@ func ConvertInitiatorArgs(initiatorInstance *string, initiatorPortNumber *uint32
 	return initiatorInstancePtr, ConvertInitiatorPortNumber(initiatorPortNumber), nil
 }
 
+// ConvertInitiatorPortNumber converts the user-facing initiatorPortNumber
+// to an internal type compatible with Windows' API.
 func ConvertInitiatorPortNumber(initiatorPortNumber *uint32) uint32 {
 	initiatorPortNumberValue := AllInititatorPorts
 	if initiatorPortNumber != nil {
@@ -137,6 +141,8 @@ func ConvertInitiatorPortNumber(initiatorPortNumber *uint32) uint32 {
 	return initiatorPortNumberValue
 }
 
+// CheckAndConvertKey converts the user-facing key argument, common to several
+// procs, into internal types compatible with Windows' API.
 func CheckAndConvertKey(key *string) (keyPtr *byte, keySize uint32, err error) {
 	if key != nil {
 		if keyPtr, err = windows.BytePtrFromString(*key); err != nil {

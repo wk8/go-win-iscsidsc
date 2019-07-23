@@ -24,10 +24,12 @@ type Portal struct {
 // see the "LoginFlags" section of https://docs.microsoft.com/en-us/windows/desktop/api/iscsidsc/ns-iscsidsc-iscsi_login_options
 type LoginFlags uint32
 
+// See the Windows documentation for an explanation of each of which each of
+// these maps to.
+// The 3rd bit maps to `ISCSI_LOGIN_FLAG_RESERVED1`, and is reserved for
+// Windows' API internal usage.
 const (
-	// the 3rd bit maps to `ISCSI_LOGIN_FLAG_RESERVED1`, and is reserved for
-	// Windows' API internal usage
-	LoginFlagRequireIpSec          LoginFlags = 0x00000001
+	LoginFlagRequireIPSec          LoginFlags = 0x00000001
 	LoginFlagMultipathEnabled      LoginFlags = 0x00000002
 	LoginFlagAllowPortalHopping    LoginFlags = 0x00000008
 	LoginFlagUseRadiusResponse     LoginFlags = 0x00000010
@@ -38,16 +40,18 @@ const (
 // see https://docs.microsoft.com/en-us/windows/desktop/api/iscsidsc/ne-iscsidsc-iscsi_auth_types
 type AuthType uint32
 
+// The various auth types available.
 const (
 	NoAuthAuthType AuthType = iota
-	ChapAuthType
-	MutualChapAuthType
+	CHAPAuthType
+	MutualCHAPAuthType
 )
 
 // DigestType maps to the `ISCSI_DIGEST_TYPES` C++ enum.
 // see https://docs.microsoft.com/en-us/windows/desktop/api/iscsidsc/ne-iscsidsc-iscsi_digest_types
 type DigestType uint32
 
+// The various digest types available.
 const (
 	DigestTypeNone DigestType = iota
 	DigestTypeCRC32C
@@ -72,6 +76,7 @@ type LoginOptions struct {
 // see the "SecurityFlags" section of https://docs.microsoft.com/en-us/windows/desktop/api/iscsidsc/nf-iscsidsc-addiscsisendtargetportalw
 type SecurityFlags uint64
 
+// The various security flags available.
 const (
 	SecurityFlagIkeIpsecEnabled        SecurityFlags = 0x00000002
 	SecurityFlagMainModeEnabled        SecurityFlags = 0x00000004
@@ -92,16 +97,16 @@ type PortalInfo struct {
 	LoginOptions        LoginOptions
 }
 
-// SessionId maps to the `ISCSI_UNIQUE_SESSION_ID` C++ struct.
+// SessionID maps to the `ISCSI_UNIQUE_SESSION_ID` C++ struct.
 // see https://docs.microsoft.com/en-us/windows/desktop/api/iscsidsc/ns-iscsidsc-iscsi_unique_session_id
-type SessionId struct {
+type SessionID struct {
 	AdapterUnique   uint64
 	AdapterSpecific uint64
 }
 
-// ConnectionId maps to the `ISCSI_UNIQUE_CONNECTION_ID` C++ struct.
+// ConnectionID maps to the `ISCSI_UNIQUE_CONNECTION_ID` C++ struct.
 // see https://docs.microsoft.com/en-us/windows/desktop/api/iscsidsc/ns-iscsidsc-iscsi_unique_session_id
-type ConnectionId struct {
+type ConnectionID struct {
 	AdapterUnique   uint64
 	AdapterSpecific uint64
 }
@@ -109,7 +114,7 @@ type ConnectionId struct {
 // ConnectionInfo maps to the `ISCSI_CONNECTION_INFOW` C++ struct.
 // see https://docs.microsoft.com/en-us/windows/desktop/api/iscsidsc/ns-iscsidsc-iscsi_connection_infow
 type ConnectionInfo struct {
-	ConnectionId     ConnectionId
+	ConnectionID     ConnectionID
 	InitiatorAddress string
 	TargetAddress    string
 	InitiatorSocket  uint16
@@ -120,7 +125,7 @@ type ConnectionInfo struct {
 // SessionInfo maps to the `ISCSI_SESSION_INFOW` C++ struct.
 // see https://docs.microsoft.com/en-us/windows/desktop/api/iscsidsc/ns-iscsidsc-iscsi_session_infow
 type SessionInfo struct {
-	SessionId      SessionId
+	SessionID      SessionID
 	InitiatorName  string
 	TargetNodeName string
 	TargetName     string
@@ -146,8 +151,8 @@ type Device struct {
 // see https://docs.microsoft.com/en-us/windows-hardware/drivers/ddi/content/ntddscsi/ns-ntddscsi-_scsi_address
 type ScsiAddress struct {
 	PortNumber uint8
-	PathId     uint8
-	TargetId   uint8
+	PathID     uint8
+	TargetID   uint8
 	Lun        uint8
 }
 

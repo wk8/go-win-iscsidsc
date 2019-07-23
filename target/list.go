@@ -22,9 +22,9 @@ func ReportIScsiTargets(forceUpdate bool) ([]string, error) {
 
 // retrieveIscsiTargets gets the raw target list from the Windows API.
 func retrieveIscsiTargets(forceUpdate bool) (buffer []byte, err error) {
-	buffer, _, _, err = internal.HandleBufferedWinApiCall(
+	buffer, _, _, err = internal.HandleBufferedWinAPICall(
 		func(s, _, b uintptr) (uintptr, error) {
-			return internal.CallWinApi(procReportIScsiTargetsW,
+			return internal.CallWinAPI(procReportIScsiTargetsW,
 				uintptr(internal.BoolToByte(forceUpdate)),
 				s,
 				b)

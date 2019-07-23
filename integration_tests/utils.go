@@ -16,7 +16,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/wk8/go-win-iscsidsc"
+	iscsidsc "github.com/wk8/go-win-iscsidsc"
 	"github.com/wk8/go-win-iscsidsc/internal"
 	"github.com/wk8/go-win-iscsidsc/target"
 	"github.com/wk8/go-win-iscsidsc/targetportal"
@@ -219,30 +219,30 @@ func assertStringInSlice(t *testing.T, needle string, slice []string) {
 	require.Fail(t, "assertStringInSlice failed", "%q not found in %v", needle, slice)
 }
 
-// setSmallInitialApiBufferSize changes the value of internal.InitialApiBufferSize to 1,
+// setSmallInitialAPIBufferSize changes the value of internal.InitialAPIBufferSize to 1,
 // and returns a func to revert that change when done with testing.
-func setSmallInitialApiBufferSize() func() {
-	previousBufferSize := internal.InitialApiBufferSize
-	internal.InitialApiBufferSize = 1
+func setSmallInitialAPIBufferSize() func() {
+	previousBufferSize := internal.InitialAPIBufferSize
+	internal.InitialAPIBufferSize = 1
 	return func() {
-		internal.InitialApiBufferSize = previousBufferSize
+		internal.InitialAPIBufferSize = previousBufferSize
 	}
 }
 
-func logIntoTargetWithDefaultArgs(targetIqn string) (*iscsidsc.SessionId, *iscsidsc.ConnectionId, error) {
+func logIntoTargetWithDefaultArgs(targetIqn string) (*iscsidsc.SessionID, *iscsidsc.ConnectionID, error) {
 	return target.LoginIscsiTarget(targetIqn, false, nil, nil, nil, nil, nil, nil, false)
 }
 
 // assertTargetLoginSuccessful should be called with return values from target.LoginIscsiTarget.
 // It asserts the login has been successful, and returns a cleanup function to be called when
 // done with testing to log out from the target.
-func assertTargetLoginSuccessful(t *testing.T, sessionId *iscsidsc.SessionId, connectionId *iscsidsc.ConnectionId, err error) func() {
+func assertTargetLoginSuccessful(t *testing.T, sessionID *iscsidsc.SessionID, connectionID *iscsidsc.ConnectionID, err error) func() {
 	require.Nil(t, err)
-	require.NotNil(t, sessionId)
-	require.NotNil(t, connectionId)
+	require.NotNil(t, sessionID)
+	require.NotNil(t, connectionID)
 
 	return func() {
-		assert.Nil(t, target.LogoutIScsiTarget(*sessionId))
+		assert.Nil(t, target.LogoutIScsiTarget(*sessionID))
 	}
 }
 
@@ -259,12 +259,12 @@ func readFile(t *testing.T, path string) string {
 	return string(contents)
 }
 
-func assertWinApiErrorCode(t *testing.T, err error, expectedErrorCode string) bool {
+func assertWinAPIErrorCode(t *testing.T, err error, expectedErrorCode string) bool {
 	if !assert.NotNil(t, err) {
 		return false
 	}
-	if winApiErr, ok := err.(*iscsidsc.WinApiCallError); assert.True(t, ok) {
-		return assert.Equal(t, expectedErrorCode, winApiErr.HexCode())
+	if winAPIErr, ok := err.(*iscsidsc.WinAPICallError); assert.True(t, ok) {
+		return assert.Equal(t, expectedErrorCode, winAPIErr.HexCode())
 	}
 	return false
 }

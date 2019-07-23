@@ -8,21 +8,22 @@ import (
 	"golang.org/x/sys/windows"
 
 	"github.com/pkg/errors"
-	"github.com/wk8/go-win-iscsidsc"
+	iscsidsc "github.com/wk8/go-win-iscsidsc"
 )
 
 var (
 	// TODO: we could (should?) check the version
 	iscsidscDLL = windows.NewLazySystemDLL(getEnv("GO_WIN_ISCSI_DLL_NAME", "iscsidsc.dll"))
 
-	// InitialApiBufferSize is the size of the buffer used for the 1st call to APIs that need one.
+	// InitialAPIBufferSize is the size of the buffer used for the 1st call to APIs that need one.
 	// It should big enough to ensure we won't need to make another call with a bigger buffer in most situations.
 	// Having it as a var and not a constant allows overriding it during tests.
 	// Note that on some versions of Windows, if this is too big, some API calls might result in ERROR_NOACCESS
 	// errors (...?)
-	InitialApiBufferSize uintptr = 100000
+	InitialAPIBufferSize uintptr = 100000
 )
 
+// GetDllProc returns a handle to a proc from the system's iscsidsc.dll.
 func GetDllProc(name string) *windows.LazyProc {
 	return iscsidscDLL.NewProc(getEnv("GO_WIN_ISCSI_DLL_PROCS_PREFIX", "") + name)
 }
@@ -30,8 +31,8 @@ func GetDllProc(name string) *windows.LazyProc {
 //go:uintptrescapes
 //go:noinline
 
-// CallWinApi makes a call to Windows' API.
-func CallWinApi(proc *windows.LazyProc, args ...uintptr) (uintptr, error) {
+// CallWinAPI makes a call to Windows' API.
+func CallWinAPI(proc *windows.LazyProc, args ...uintptr) (uintptr, error) {
 	if err := proc.Find(); err != nil {
 		return 0, errors.Wrapf(err, "Unable to locate %q function in DLL %q", proc.Name, iscsidscDLL.Name)
 	}
@@ -41,20 +42,20 @@ func CallWinApi(proc *windows.LazyProc, args ...uintptr) (uintptr, error) {
 	if exitCode == 0 {
 		return exitCode, nil
 	}
-	return exitCode, iscsidsc.NewWinApiCallError(proc.Name, exitCode)
+	return exitCode, iscsidsc.NewWinAPICallError(proc.Name, exitCode)
 }
 
-// HandleBufferedWinApiCall is a helper for Windows API calls listing objects, that always follow the same pattern:
+// HandleBufferedWinAPICall is a helper for Windows API calls listing objects, that always follow the same pattern:
 // the caller has to allocate a buffer, and the proc fills that buffer, returning an object count and a byte count.
 // typeSize is the size, in bytes, of the type the API calls expect the buffer to be (eg 1 for CHAR, 2 for WCHAR, etc...)
-func HandleBufferedWinApiCall(f func(s, c, b uintptr) (uintptr, error), procName string, typeSize uintptr) (buffer []byte, bufferPointer uintptr, count int32, err error) {
-	bufferSize := InitialApiBufferSize/typeSize + 1
+func HandleBufferedWinAPICall(f func(s, c, b uintptr) (uintptr, error), procName string, typeSize uintptr) (buffer []byte, bufferPointer uintptr, count int32, err error) {
+	bufferSize := InitialAPIBufferSize/typeSize + 1
 	var exitCode uintptr
 
 	for {
 		buffer = make([]byte, bufferSize*typeSize)
 
-		exitCode, bufferPointer, err = makeBufferedWinApiCall(
+		exitCode, bufferPointer, err = makeBufferedWinAPICall(
 			f,
 			uintptr(unsafe.Pointer(&bufferSize)),
 			uintptr(unsafe.Pointer(&count)),
@@ -89,7 +90,7 @@ func HandleBufferedWinApiCall(f func(s, c, b uintptr) (uintptr, error), procName
 
 // ensures the none of the arguments will be moved by the GC before we return; in particular,
 // allows saving the position of the buffer in memory when passed to the Win API proc.
-func makeBufferedWinApiCall(f func(s, c, b uintptr) (uintptr, error), size, count, buffer uintptr) (uintptr, uintptr, error) {
+func makeBufferedWinAPICall(f func(s, c, b uintptr) (uintptr, error), size, count, buffer uintptr) (uintptr, uintptr, error) {
 	exitCode, err := f(size, count, buffer)
 	return exitCode, buffer, err
 }

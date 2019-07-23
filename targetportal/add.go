@@ -4,7 +4,7 @@ import (
 	"unsafe"
 
 	"github.com/pkg/errors"
-	"github.com/wk8/go-win-iscsidsc"
+	iscsidsc "github.com/wk8/go-win-iscsidsc"
 	"github.com/wk8/go-win-iscsidsc/internal"
 )
 
@@ -53,7 +53,7 @@ func AddIScsiSendTargetPortal(initiatorInstance *string, initiatorPortNumber *ui
 //go:uintptrescapes
 //go:noinline
 
-// callProcAddIScsiSendTargetPortalW is only a wrapper around `internal.CallWinApi`.
+// callProcAddIScsiSendTargetPortalW is only a wrapper around `internal.CallWinAPI`.
 // Its main purpose is that the unsafe pointers to the username and password strings are
 // guaranteed to stay in the same place in memory until this function returns.
 // See `internal.CheckAndConvertLoginOptions`'s doc comment as well as https://golang.org/pkg/unsafe/#Pointer
@@ -65,7 +65,7 @@ func callProcAddIScsiSendTargetPortalW(initiatorInstancePtr *uint16, initiatorPo
 	internalLoginOptions.Username = userNameUintptr
 	internalLoginOptions.Password = passwordUintptr
 
-	return internal.CallWinApi(procAddIScsiSendTargetPortalW,
+	return internal.CallWinAPI(procAddIScsiSendTargetPortalW,
 		uintptr(unsafe.Pointer(initiatorInstancePtr)),
 		uintptr(initiatorPortNumberValue),
 		uintptr(unsafe.Pointer(internalLoginOptions)),

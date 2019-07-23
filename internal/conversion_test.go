@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/wk8/go-win-iscsidsc"
+	iscsidsc "github.com/wk8/go-win-iscsidsc"
 )
 
 func TestCheckAndConvertLoginOptions(t *testing.T) {
@@ -37,12 +37,12 @@ func TestCheckAndConvertLoginOptions(t *testing.T) {
 		{
 			name: "auth type",
 			inputFunc: func(optsIn *iscsidsc.LoginOptions) {
-				chapAuthType := iscsidsc.ChapAuthType
+				chapAuthType := iscsidsc.CHAPAuthType
 				optsIn.AuthType = &chapAuthType
 			},
 			expectedOutputFunc: func(opts *LoginOptions) {
 				opts.InformationSpecified |= InformationSpecifiedAuthType
-				opts.AuthType = iscsidsc.ChapAuthType
+				opts.AuthType = iscsidsc.CHAPAuthType
 			},
 		},
 		{

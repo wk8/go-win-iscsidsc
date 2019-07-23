@@ -18,7 +18,7 @@ func TestReportIScsiTargets(t *testing.T) {
 		},
 		{
 			name:      "with a too small initial buffer size",
-			setupFunc: setSmallInitialApiBufferSize,
+			setupFunc: setSmallInitialAPIBufferSize,
 		},
 	}
 
@@ -70,36 +70,36 @@ func TestLoginLogout(t *testing.T) {
 	defer portalCleaner.cleanup()
 
 	// logging in a first time should work
-	sessionId1, connectionId1, err := logIntoTargetWithDefaultArgs(targetIqn)
+	sessionID1, connectionID1, err := logIntoTargetWithDefaultArgs(targetIqn)
 	require.Nil(t, err)
-	require.NotNil(t, sessionId1)
-	require.NotNil(t, connectionId1)
+	require.NotNil(t, sessionID1)
+	require.NotNil(t, connectionID1)
 
 	// trying to log in a second time should yield a ISDSC_TARGET_ALREADY_LOGGED_IN (0xEFFF003F) error
 	// see https://docs.microsoft.com/en-us/windows-hardware/drivers/storage/iscsi-status-qualifiers
-	sessionId2, connectionId2, err := logIntoTargetWithDefaultArgs(targetIqn)
-	assertWinApiErrorCode(t, err, "0xEFFF003F")
-	assert.Nil(t, sessionId2)
-	assert.Nil(t, connectionId2)
+	sessionID2, connectionID2, err := logIntoTargetWithDefaultArgs(targetIqn)
+	assertWinAPIErrorCode(t, err, "0xEFFF003F")
+	assert.Nil(t, sessionID2)
+	assert.Nil(t, connectionID2)
 
 	// now let's logout
-	err = target.LogoutIScsiTarget(*sessionId1)
+	err = target.LogoutIScsiTarget(*sessionID1)
 	require.Nil(t, err)
 
 	// trying to log out a second time should yield a ISDSC_INVALID_SESSION_ID (0xEFFF001C) error
-	err = target.LogoutIScsiTarget(*sessionId1)
-	assertWinApiErrorCode(t, err, "0xEFFF001C")
+	err = target.LogoutIScsiTarget(*sessionID1)
+	assertWinAPIErrorCode(t, err, "0xEFFF001C")
 
 	// now we should be able to log in again
-	sessionId3, connectionId3, err := logIntoTargetWithDefaultArgs(targetIqn)
+	sessionID3, connectionID3, err := logIntoTargetWithDefaultArgs(targetIqn)
 	require.Nil(t, err)
-	require.NotNil(t, sessionId1)
-	require.NotNil(t, connectionId1)
+	require.NotNil(t, sessionID1)
+	require.NotNil(t, connectionID1)
 	// we should have been given new IDs
-	assert.NotEqual(t, sessionId1, sessionId3)
-	assert.NotEqual(t, connectionId1, connectionId3)
+	assert.NotEqual(t, sessionID1, sessionID3)
+	assert.NotEqual(t, connectionID1, connectionID3)
 
 	// and finally let's log out again
-	err = target.LogoutIScsiTarget(*sessionId3)
+	err = target.LogoutIScsiTarget(*sessionID3)
 	require.Nil(t, err)
 }

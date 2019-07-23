@@ -6,7 +6,7 @@ import (
 	"golang.org/x/sys/windows"
 
 	"github.com/pkg/errors"
-	"github.com/wk8/go-win-iscsidsc"
+	iscsidsc "github.com/wk8/go-win-iscsidsc"
 	"github.com/wk8/go-win-iscsidsc/internal"
 )
 
@@ -17,7 +17,7 @@ var procLoginIScsiTargetW = internal.GetDllProc("LoginIScsiTargetW")
 // TODO: we don't support passing custom mappings yet.
 // see https://docs.microsoft.com/en-us/windows/desktop/api/iscsidsc/nf-iscsidsc-loginiscsitargetw
 func LoginIscsiTarget(targetName string, isInformationalSession bool, initiatorInstance *string, initiatorPortNumber *uint32, targetPortal *iscsidsc.Portal,
-	securityFlags *iscsidsc.SecurityFlags, loginOptions *iscsidsc.LoginOptions, key *string, isPersistent bool) (*iscsidsc.SessionId, *iscsidsc.ConnectionId, error) {
+	securityFlags *iscsidsc.SecurityFlags, loginOptions *iscsidsc.LoginOptions, key *string, isPersistent bool) (*iscsidsc.SessionID, *iscsidsc.ConnectionID, error) {
 	targetNamePtr, err := windows.UTF16PtrFromString(targetName)
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "invalid target name: %q", targetName)
@@ -58,15 +58,15 @@ func LoginIscsiTarget(targetName string, isInformationalSession bool, initiatorI
 
 func callProcLoginIScsiTargetW(targetNamePtr *uint16, isInformationalSession bool, initiatorInstancePtr *uint16, initiatorPortNumberValue uint32,
 	internalPortal *internal.Portal, securityFlagsValue iscsidsc.SecurityFlags, internalLoginOptions *internal.LoginOptions,
-	userNameUintptr, passwordUintptr uintptr, keyPtr *byte, keySize uint32, isPersistent bool) (*iscsidsc.SessionId, *iscsidsc.ConnectionId, error) {
+	userNameUintptr, passwordUintptr uintptr, keyPtr *byte, keySize uint32, isPersistent bool) (*iscsidsc.SessionID, *iscsidsc.ConnectionID, error) {
 
 	internalLoginOptions.Username = userNameUintptr
 	internalLoginOptions.Password = passwordUintptr
 
-	sessionId := &iscsidsc.SessionId{}
-	connectionId := &iscsidsc.ConnectionId{}
+	sessionID := &iscsidsc.SessionID{}
+	connectionID := &iscsidsc.ConnectionID{}
 
-	if _, err := internal.CallWinApi(procLoginIScsiTargetW,
+	if _, err := internal.CallWinAPI(procLoginIScsiTargetW,
 		uintptr(unsafe.Pointer(targetNamePtr)),
 		uintptr(internal.BoolToByte(isInformationalSession)),
 		uintptr(unsafe.Pointer(initiatorInstancePtr)),
@@ -78,11 +78,11 @@ func callProcLoginIScsiTargetW(targetNamePtr *uint16, isInformationalSession boo
 		uintptr(keySize),
 		uintptr(unsafe.Pointer(keyPtr)),
 		uintptr(internal.BoolToByte(isPersistent)),
-		uintptr(unsafe.Pointer(sessionId)),
-		uintptr(unsafe.Pointer(connectionId)),
+		uintptr(unsafe.Pointer(sessionID)),
+		uintptr(unsafe.Pointer(connectionID)),
 	); err != nil {
 		return nil, nil, err
 	}
 
-	return sessionId, connectionId, nil
+	return sessionID, connectionID, nil
 }

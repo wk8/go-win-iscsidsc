@@ -6,7 +6,7 @@ import (
 	"unsafe"
 )
 
-// iterateOverAllSubsets will call f with all the 2^n - 1 (unordered) subsets of {0,1,2,...,n}
+// IterateOverAllSubsets will call f with all the 2^n - 1 (unordered) subsets of {0,1,2,...,n}.
 func IterateOverAllSubsets(n uint, f func(subset []uint)) {
 	max := uint(1<<n - 1)
 	subset := make([]uint, n)

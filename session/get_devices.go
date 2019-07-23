@@ -6,7 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
-	"github.com/wk8/go-win-iscsidsc"
+	iscsidsc "github.com/wk8/go-win-iscsidsc"
 	"github.com/wk8/go-win-iscsidsc/internal"
 	"golang.org/x/sys/windows"
 )
@@ -15,7 +15,7 @@ var procGetDevicesForIScsiSessionW = internal.GetDllProc("GetDevicesForIScsiSess
 
 // GetDevicesForIScsiSession retrieves information about the devices associated with an existing session.
 // see https://docs.microsoft.com/en-us/windows/win32/api/iscsidsc/nf-iscsidsc-getdevicesforiscsisessionw
-func GetDevicesForIScsiSession(id iscsidsc.SessionId) ([]iscsidsc.Device, error) {
+func GetDevicesForIScsiSession(id iscsidsc.SessionID) ([]iscsidsc.Device, error) {
 	buffer, bufferPointer, _, err := retrieveDevices(id)
 	if err != nil {
 		return nil, err
@@ -31,10 +31,10 @@ func GetDevicesForIScsiSession(id iscsidsc.SessionId) ([]iscsidsc.Device, error)
 }
 
 // retrieveDevices gets the raw devices' infos from the Windows API.
-func retrieveDevices(id iscsidsc.SessionId) (buffer []byte, bufferPointer uintptr, count int32, err error) {
-	return internal.HandleBufferedWinApiCall(
+func retrieveDevices(id iscsidsc.SessionID) (buffer []byte, bufferPointer uintptr, count int32, err error) {
+	return internal.HandleBufferedWinAPICall(
 		func(s, _, b uintptr) (uintptr, error) {
-			return internal.CallWinApi(procGetDevicesForIScsiSessionW,
+			return internal.CallWinAPI(procGetDevicesForIScsiSessionW,
 				uintptr(unsafe.Pointer(&id)),
 				s,
 				b)
@@ -72,7 +72,7 @@ func hydrateDevice(buffer []byte, bufferPointer uintptr, i int, device *iscsidsc
 	}
 	device.ScsiAddress = *scsiAddress
 
-	guid, err := hydrateGuid(deviceIn.DeviceInterfaceType)
+	guid, err := hydrateGUID(deviceIn.DeviceInterfaceType)
 	if err != nil {
 		return err
 	}
@@ -93,15 +93,15 @@ func hydrateScsiAddress(addressIn internal.ScsiAddress) (*iscsidsc.ScsiAddress, 
 
 	return &iscsidsc.ScsiAddress{
 		PortNumber: addressIn.PortNumber,
-		PathId:     addressIn.PathId,
-		TargetId:   addressIn.TargetId,
+		PathID:     addressIn.PathID,
+		TargetID:   addressIn.TargetID,
 		Lun:        addressIn.Lun,
 	}, nil
 }
 
-// hydrateGuid casts a GUID as stored internally by Windows' API into
+// hydrateGUID casts a GUID as stored internally by Windows' API into
 // a more easily usable struct.
-func hydrateGuid(guidIn internal.GUID) (uuid.UUID, error) {
+func hydrateGUID(guidIn internal.GUID) (uuid.UUID, error) {
 	b := make([]byte, 16)
 
 	b1 := (*[4]byte)(unsafe.Pointer(&guidIn.Data1))
